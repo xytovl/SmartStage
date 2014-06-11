@@ -1,7 +1,7 @@
 SmartStage 
 ==========
 
-Automatic stage calculation in Kerbal Spaec Program VAB (vehicule assembly building)
+Automatic stage calculation in Kerbal Space Program VAB (vehicle assembly building)
 
 Usage:
 ------
