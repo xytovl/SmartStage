@@ -16,10 +16,18 @@ namespace SmartStage
 
 		void OnGUI()
 		{
-			if (GUI.Button(new Rect(Screen.width - 100, 100, 100, 20), "Smart stage"))
+			if (GUI.Button(new Rect(Screen.width - 100, 50, 100, 20), "Smart stage"))
 			{
 				computeStages();
 			}
+		}
+
+		// Let's say a sepratron is an engine with more than 45° inclination
+		public static bool isSepratron(Part part)
+		{
+			if (part.Modules.OfType<ModuleEngines>().Count() == 0)
+				return false;
+			return Quaternion.Angle(part.attRotation, Quaternion.identity) >= 45;
 		}
 
 		public void computeStages()
@@ -32,12 +40,14 @@ namespace SmartStage
 			List<StageDescription> stages = new List<StageDescription>();
 			double elapsedTime = 0;
 
-			//Initialize first stage with available engines
+			//Initialize first stage with available engines and launch clamps
 			stages.Add(new StageDescription(0));
 			foreach(Node node in availableNodes.Values)
 			{
-				if (node.part.Modules.OfType<ModuleEngines>().Count() > 0 && node.IsEngineActive())
+				if ((node.part.Modules.OfType<ModuleEngines>().Count() > 0 && node.IsEngineActive() && ! isSepratron(node.part))
+					|| node.part.Modules.OfType<LaunchClamp>().Count() > 0)
 					stages[0].stageParts.Add(node.part);
+
 			}
 
 			while (true)
@@ -120,18 +130,23 @@ namespace SmartStage
 
 				if (newStage.stageParts.Count > 0)
 					stages.Add(newStage);
+				List<Part> sepratrons = new List<Part>();
 
-				// Remove all decoupled elements
+				// Remove all decoupled elements, fire sepratrons
 				foreach(Part part in newStage.stageParts)
 				{
 					if (availableNodes.ContainsKey(part))
+					{
+						sepratrons.AddRange(availableNodes[part].getSepratronChildren());
 						availableNodes[part].dropSelfAndChildren();
+					}
 				}
+				newStage.stageParts.AddRange(sepratrons);
 
 				// Fire some engines
 				foreach(Node node in availableNodes.Values)
 				{
-					if (node.part.Modules.OfType<ModuleEngines>().Count() > 0 && node.IsEngineActive())
+					if (node.part.Modules.OfType<ModuleEngines>().Count() > 0 && node.IsEngineActive() && ! isSepratron(node.part))
 						newStage.stageParts.Add(node.part);
 				}
 
@@ -199,9 +214,22 @@ namespace SmartStage
 
 			public bool hasFuelInChildren()
 			{
-				if (resourceMass.Any(massPair => massPair.Value > 0.0001d))
+				if (resourceMass.Any(massPair => massPair.Value > 0.0001d) && ! isSepratron(part))
 					return true;
 				return part.children.Any(child => shipParts.ContainsKey(child) && shipParts[child].hasFuelInChildren());
+			}
+
+			public List<Part> getSepratronChildren()
+			{
+				List<Part> result = new List<Part>();
+				if (isSepratron(part))
+					result.Add(part);
+				foreach(Part child in part.children)
+				{
+					if (shipParts.ContainsKey(child))
+						result.AddRange(shipParts[child].getSepratronChildren());
+				}
+				return result;
 			}
 
 			public List<Node> GetTanks(int currentRequestIdentifier, string resource)
