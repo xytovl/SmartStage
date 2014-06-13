@@ -27,8 +27,23 @@ namespace SmartStage
 		{
 			if (part.Modules.OfType<ModuleEngines>().Count() == 0 && part.Modules.OfType<ModuleEnginesFX>().Count() == 0 )
 				return false;
-			// fixme : should not count pitch
-			return Quaternion.Angle(part.attRotation, Quaternion.identity) >= 45;
+
+			Vector3 thrust = Vector3d.zero;
+			int numTransforms = 0;
+			foreach (var e in part.Modules.OfType<ModuleEngines>())
+			{
+				numTransforms += e.thrustTransforms.Count;
+				foreach (var t in e.thrustTransforms)
+					thrust -= t.forward;
+			}
+			foreach (var e in part.Modules.OfType<ModuleEnginesFX>())
+			{
+				numTransforms += e.thrustTransforms.Count;
+				foreach (var t in e.thrustTransforms)
+					thrust -= t.forward;
+			}
+
+			return Vector3.Dot(Vector3d.up, thrust/numTransforms) <= 0.8;
 		}
 
 		public void computeStages()
