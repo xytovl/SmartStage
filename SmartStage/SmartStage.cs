@@ -25,8 +25,9 @@ namespace SmartStage
 		// Let's say a sepratron is an engine with more than 45° inclination
 		public static bool isSepratron(Part part)
 		{
-			if (part.Modules.OfType<ModuleEngines>().Count() == 0)
+			if (part.Modules.OfType<ModuleEngines>().Count() == 0 && part.Modules.OfType<ModuleEnginesFX>().Count() == 0 )
 				return false;
+			// fixme : should not count pitch
 			return Quaternion.Angle(part.attRotation, Quaternion.identity) >= 45;
 		}
 
@@ -44,7 +45,7 @@ namespace SmartStage
 			stages.Add(new StageDescription(0));
 			foreach(Node node in availableNodes.Values)
 			{
-				if ((node.part.Modules.OfType<ModuleEngines>().Count() > 0 && node.IsEngineActive() && ! isSepratron(node.part))
+				if ((node.isActiveEngine() && ! isSepratron(node.part))
 					|| node.part.Modules.OfType<LaunchClamp>().Count() > 0)
 					stages[0].stageParts.Add(node.part);
 
@@ -54,47 +55,16 @@ namespace SmartStage
 			{
 				// Reset all propellant flow
 				foreach (Node node in availableNodes.Values)
-				{
 					node.resetFlow();
-				}
 
 				// Compute flow for active engines
 				foreach (Node node in availableNodes.Values)
-				{
-					ModuleEngines engine = node.part.Modules.OfType<ModuleEngines>().FirstOrDefault();
-					//ModuleEnginesFX enginefx = part.Modules.OfType<ModuleEnginesFX>().Where(e => e.isEnabled).FirstOrDefault();
-					if (engine != null && node.IsEngineActive())
-					{
-						// For each relevant propellant, get the list of tanks the engine will drain resources
-						Dictionary<Propellant, List<Node>> resources = 
-							engine.propellants.FindAll (
-								prop => PartResourceLibrary.Instance.GetDefinition (prop.id).density > 0 && prop.name != "IntakeAir")
-								.ToDictionary (
-									prop => prop,
-									prop => node.GetTanks (requestId++, prop.name));
-
-						// Check if we have all required propellants
-						if (resources.All(pair => pair.Value.Count > 0))
-						{
-							foreach (KeyValuePair<Propellant, List<Node>> pair in resources)
-							{
-								double rate = engine.maxThrust * engine.atmosphereCurve.Evaluate(0) * pair.Key.ratio / pair.Value.Count;
-								pair.Value.ForEach(tankNode => tankNode.resourceFlow[pair.Key.name] += rate);
-							}
-						}
-					}
-				}
+					requestId = node.evaluateFuelFlow(requestId);
 
 				// Find out when next event happens
-				double nextEvent = Double.MaxValue;
-				foreach (Node node in availableNodes.Values)
-				{
-					foreach (KeyValuePair<String,double> flowPair in node.resourceFlow)
-					{
-						if (flowPair.Value > Double.Epsilon)
-							nextEvent = Math.Min(nextEvent, node.resourceMass[flowPair.Key] / flowPair.Value);
-					}
-				}
+				if (availableNodes.Count() == 0)
+					break;
+				double nextEvent = availableNodes.Min(node => node.Value.getNextEvent());
 
 				// Quit if there is no other event
 				if (nextEvent == Double.MaxValue)
@@ -105,14 +75,7 @@ namespace SmartStage
 				// Burn the fuel !
 				foreach (Node node in availableNodes.Values)
 				{
-					foreach (KeyValuePair<String,double> flowPair in node.resourceFlow)
-					{
-						node.resourceMass[flowPair.Key] -= flowPair.Value * nextEvent;
-						if (node.resourceMass[flowPair.Key] < Double.Epsilon)
-						{
-							node.resourceMass[flowPair.Key] = 0d;
-						}
-					}
+					node.applyFuelConsumption(nextEvent);
 				}
 
 				// Add all decouplers in a new stage
@@ -146,7 +109,7 @@ namespace SmartStage
 				// Fire some engines
 				foreach(Node node in availableNodes.Values)
 				{
-					if (node.part.Modules.OfType<ModuleEngines>().Count() > 0 && node.IsEngineActive() && ! isSepratron(node.part))
+					if (node.isActiveEngine() && ! isSepratron(node.part))
 						newStage.stageParts.Add(node.part);
 				}
 
@@ -197,6 +160,66 @@ namespace SmartStage
 				resetFlow();
 			}
 
+			//Helper method to unify ModuleEngines and ModuleEnginesFX
+			private int evaluateFuelFlow(List<Propellant> propellants, float maxThrust, FloatCurve atmosphereCurve, int currentRequestIdentifier)
+			{
+				// For each relevant propellant, get the list of tanks the engine will drain resources
+				Dictionary<Propellant, List<Node>> resources = 
+					propellants.FindAll (
+						prop => PartResourceLibrary.Instance.GetDefinition (prop.id).density > 0 && prop.name != "IntakeAir")
+						.ToDictionary (
+							prop => prop,
+							prop => GetTanks (currentRequestIdentifier++, prop.name));
+
+				// Check if we have all required propellants
+				if (resources.All(pair => pair.Value.Count > 0))
+				{
+					foreach (KeyValuePair<Propellant, List<Node>> pair in resources)
+					{
+						double rate = maxThrust * atmosphereCurve.Evaluate(0) * pair.Key.ratio / pair.Value.Count;
+						pair.Value.ForEach(tankNode => tankNode.resourceFlow[pair.Key.name] += rate);
+					}
+				}
+				return currentRequestIdentifier;
+			}
+
+			// Follows fuel flow for each engine propellant and adjust consumption rate in the affected tanks
+			// Must be provided an unused request identifier, which will be incremented and returned
+			public int evaluateFuelFlow(int currentRequestIdentifier)
+			{
+				if (!isActiveEngine())
+					return currentRequestIdentifier;
+				foreach(ModuleEngines engine in part.Modules.OfType<ModuleEngines>())
+					currentRequestIdentifier = evaluateFuelFlow(engine.propellants, engine.maxThrust, engine.atmosphereCurve, currentRequestIdentifier);
+				foreach(ModuleEnginesFX engine in part.Modules.OfType<ModuleEnginesFX>())
+					currentRequestIdentifier = evaluateFuelFlow(engine.propellants, engine.maxThrust, engine.atmosphereCurve, currentRequestIdentifier);
+				return currentRequestIdentifier;
+			}
+
+			// Compute the delay until a depletion event occurs in the node according to the computed fuel flow
+			public double getNextEvent()
+			{
+				if (resourceFlow.Count() == 0)
+					return Double.MaxValue;
+				return resourceFlow.Min(flowPair => flowPair.Value > Double.Epsilon ?
+					resourceMass[flowPair.Key] / flowPair.Value :
+					Double.MaxValue);
+			}
+
+			// Burn fuel in the part using the stored fuelflow value
+			public void applyFuelConsumption(double time)
+			{
+				foreach (KeyValuePair<String,double> flowPair in resourceFlow)
+				{
+					resourceMass[flowPair.Key] -= flowPair.Value * time;
+					if (resourceMass[flowPair.Key] < Double.Epsilon)
+					{
+						resourceMass[flowPair.Key] = 0d;
+					}
+				}
+			}
+
+			// Removes all descendants of the given part from the shipParts dictionary
 			public void dropSelfAndChildren()
 			{
 				shipParts.Remove(part);
@@ -207,11 +230,13 @@ namespace SmartStage
 				}
 			}
 
+			// Sets fuel consumption to 0 on the given part
 			public void resetFlow()
 			{
 				resourceFlow = part.Resources.list.ToDictionary(x => x.resourceName, x => 0d);
 			}
 
+			// Returns true if any of the descendant still in the shipParts dictionary has fuel and is not a sepratron
 			public bool hasFuelInChildren()
 			{
 				if (resourceMass.Any(massPair => massPair.Value > 0.0001d) && ! isSepratron(part))
@@ -219,6 +244,7 @@ namespace SmartStage
 				return part.children.Any(child => shipParts.ContainsKey(child) && shipParts[child].hasFuelInChildren());
 			}
 
+			// Returns the list of descendants in the shipParts dictionary that are considered sepratrons
 			public List<Part> getSepratronChildren()
 			{
 				List<Part> result = new List<Part>();
@@ -232,7 +258,9 @@ namespace SmartStage
 				return result;
 			}
 
-			public List<Node> GetTanks(int currentRequestIdentifier, string resource)
+			// Follows fuel flow for a given propellant (by name) and returns the list of parts from which resources
+			// will be drained
+			private List<Node> GetTanks(int currentRequestIdentifier, string resource)
 			{
 				List<Node> result = new List<Node>();
 
@@ -303,9 +331,12 @@ namespace SmartStage
 				return new List<Node>();
 			}
 		
-			public bool IsEngineActive()
+			//Returns true if the part is an engine and should be turned on according to remaining parts
+			public bool isActiveEngine()
 			{
-				return part.attachNodes.All(x => x.id != "bottom" || x.attachedPart == null || !shipParts.ContainsKey(x.attachedPart));
+				if (part.Modules.OfType<ModuleEngines>().Count() == 0 && part.Modules.OfType<ModuleEnginesFX>().Count() == 0)
+					return false;
+				return part.attachNodes.All(x => (x.id != "bottom" || x.attachedPart == null || !shipParts.ContainsKey(x.attachedPart)));
 			}
 		}
 	}
