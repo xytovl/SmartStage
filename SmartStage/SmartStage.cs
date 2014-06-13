@@ -160,8 +160,8 @@ namespace SmartStage
 			int requestId;
 			public Part part;
 
-			public Dictionary<string, double> resourceMass;
-			public Dictionary<string, double> resourceFlow;
+			private Dictionary<int, double> resourceMass;
+			private Dictionary<int, double> resourceFlow;
 
 			private Dictionary<Part,Node> shipParts;
 
@@ -171,7 +171,7 @@ namespace SmartStage
 				this.shipParts = shipParts;
 				requestId = -1;
 				// TODO: enlever les resources désactivées
-				resourceMass = part.Resources.list.ToDictionary(x => x.resourceName, x => x.info.density * x.amount);
+				resourceMass = part.Resources.list.ToDictionary(x => x.info.id, x => x.info.density * x.amount);
 				resetFlow();
 			}
 
@@ -181,10 +181,10 @@ namespace SmartStage
 				// For each relevant propellant, get the list of tanks the engine will drain resources
 				Dictionary<Propellant, List<Node>> resources = 
 					propellants.FindAll (
-						prop => PartResourceLibrary.Instance.GetDefinition (prop.id).density > 0 && prop.name != "IntakeAir")
+						prop => PartResourceLibrary.Instance.GetDefinition(prop.id).density > 0 && prop.name != "IntakeAir")
 						.ToDictionary (
 							prop => prop,
-							prop => GetTanks (currentRequestIdentifier++, prop.name));
+							prop => GetTanks (currentRequestIdentifier++, prop.id));
 
 				// Check if we have all required propellants
 				if (resources.All(pair => pair.Value.Count > 0))
@@ -192,7 +192,7 @@ namespace SmartStage
 					foreach (KeyValuePair<Propellant, List<Node>> pair in resources)
 					{
 						double rate = maxThrust * atmosphereCurve.Evaluate(0) * pair.Key.ratio / pair.Value.Count;
-						pair.Value.ForEach(tankNode => tankNode.resourceFlow[pair.Key.name] += rate);
+						pair.Value.ForEach(tankNode => tankNode.resourceFlow[pair.Key.id] += rate);
 					}
 				}
 				return currentRequestIdentifier;
@@ -224,7 +224,7 @@ namespace SmartStage
 			// Burn fuel in the part using the stored fuelflow value
 			public void applyFuelConsumption(double time)
 			{
-				foreach (KeyValuePair<String,double> flowPair in resourceFlow)
+				foreach (KeyValuePair<int,double> flowPair in resourceFlow)
 				{
 					resourceMass[flowPair.Key] -= flowPair.Value * time;
 					if (resourceMass[flowPair.Key] < Double.Epsilon)
@@ -248,7 +248,7 @@ namespace SmartStage
 			// Sets fuel consumption to 0 on the given part
 			public void resetFlow()
 			{
-				resourceFlow = part.Resources.list.ToDictionary(x => x.resourceName, x => 0d);
+				resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
 			}
 
 			// Returns true if any of the descendant still in the shipParts dictionary has fuel and is not a sepratron
@@ -275,8 +275,15 @@ namespace SmartStage
 
 			// Follows fuel flow for a given propellant (by name) and returns the list of parts from which resources
 			// will be drained
-			private List<Node> GetTanks(int currentRequestIdentifier, string resource)
+			private List<Node> GetTanks(int currentRequestIdentifier, int propellantId)
 			{
+				if (PartResourceLibrary.Instance.GetDefinition(propellantId).resourceFlowMode == ResourceFlowMode.NO_FLOW)
+				{
+					if (resourceMass.ContainsKey(propellantId) && resourceMass[propellantId] <= 0)
+						return new List<Node>();
+					return new List<Node> {this};
+				}
+
 				List<Node> result = new List<Node>();
 
 				// Rule 1
@@ -290,7 +297,7 @@ namespace SmartStage
 				{
 					if (p is FuelLine && ((FuelLine)p).target == part)
 					{
-						result.AddRange(shipParts[p.parent].GetTanks(currentRequestIdentifier, resource));
+						result.AddRange(shipParts[p.parent].GetTanks(currentRequestIdentifier, propellantId));
 					}
 				}
 
@@ -311,7 +318,7 @@ namespace SmartStage
 							i.id != "Strut" &&
 							!(part.NoCrossFeedNodeKey.Length > 0 && i.id.Contains(part.NoCrossFeedNodeKey)))
 						{
-							result.AddRange(shipParts[i.attachedPart].GetTanks(currentRequestIdentifier, resource));
+							result.AddRange(shipParts[i.attachedPart].GetTanks(currentRequestIdentifier, propellantId));
 						}
 					}
 				}
@@ -320,11 +327,11 @@ namespace SmartStage
 					return result;
 
 				// Rule 5
-				if (resourceMass.ContainsKey(resource) && resourceMass[resource] > 0)
+				if (resourceMass.ContainsKey(propellantId) && resourceMass[propellantId] > 0)
 					return new List<Node> { this };
 
 				// Rule 6
-				if (resourceMass.ContainsKey(resource) && resourceMass[resource] <= 0)
+				if (resourceMass.ContainsKey(propellantId) && resourceMass[propellantId] <= 0)
 					return new List<Node>();
 
 				// Rule 7
@@ -337,7 +344,7 @@ namespace SmartStage
 							i.nodeType == AttachNode.NodeType.Surface &&
 							shipParts.ContainsKey(i.attachedPart))
 						{
-							return shipParts[i.attachedPart].GetTanks(currentRequestIdentifier, resource);
+							return shipParts[i.attachedPart].GetTanks(currentRequestIdentifier, propellantId);
 						}
 					}
 				}
