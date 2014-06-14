@@ -1,4 +1,6 @@
 *.userprefs
+*.zip
+*.swp
 
 Properties
 bin
