@@ -86,10 +86,6 @@ namespace SmartStage
 
 			while (true)
 			{
-				// Reset all propellant flow
-				foreach (Node node in availableNodes.Values)
-					node.resetFlow();
-
 				// Compute flow for active engines
 				foreach (Node node in availableNodes.Values)
 					requestId = node.evaluateFuelFlow(requestId);
@@ -97,7 +93,7 @@ namespace SmartStage
 				// Find out when next event happens
 				if (availableNodes.Count() == 0)
 					break;
-				double nextEvent = availableNodes.Min(node => node.Value.getNextEvent());
+				double nextEvent = Math.Max(availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
 
 				// Quit if there is no other event
 				if (nextEvent == Double.MaxValue)
@@ -190,7 +186,7 @@ namespace SmartStage
 				requestId = -1;
 				// TODO: enlever les resources désactivées
 				resourceMass = part.Resources.list.ToDictionary(x => x.info.id, x => x.info.density * x.amount);
-				resetFlow();
+				resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
 			}
 
 			//Helper method to unify ModuleEngines and ModuleEnginesFX
@@ -245,11 +241,12 @@ namespace SmartStage
 				foreach (KeyValuePair<int,double> flowPair in resourceFlow)
 				{
 					resourceMass[flowPair.Key] -= flowPair.Value * time;
-					if (resourceMass[flowPair.Key] < Double.Epsilon)
+					if (resourceMass[flowPair.Key] < 1E-4)
 					{
 						resourceMass[flowPair.Key] = 0d;
 					}
 				}
+				resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
 			}
 
 			// Removes all descendants of the given part from the shipParts dictionary
@@ -261,12 +258,6 @@ namespace SmartStage
 					if (shipParts.ContainsKey(child))
 						shipParts[child].dropSelfAndChildren();
 				}
-			}
-
-			// Sets fuel consumption to 0 on the given part
-			public void resetFlow()
-			{
-				resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
 			}
 
 			// Returns true if any of the descendant still in the shipParts dictionary has fuel and is not a sepratron
