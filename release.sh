@@ -7,9 +7,19 @@ fi
 
 set -e
 
-TARGET="GameData/$1/Plugins"
-rm -rf GameData
-mkdir -p $TARGET
-cp $2 $TARGET
-zip -r "$1-`git describe --abbrev=0 --tags|sed s/^v//`.zip" GameData
+RESOURCES="$1/SmartStage.tga"
+
+TARGET="GameData/$1"
+OUTPUT="$1-`git describe --abbrev=0 --tags|sed s/^v//`.zip"
+
+rm -rf GameData $OUTPUT
+mkdir -p $TARGET/Plugins
+
+cp $2 $TARGET/Plugins
+
+for f in $RESOURCES ;do
+	cp $f $TARGET
+done
+
+zip -r $OUTPUT GameData
 rm -r GameData

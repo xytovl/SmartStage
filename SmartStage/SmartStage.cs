@@ -10,12 +10,30 @@ namespace SmartStage
 	public class SmartStage : MonoBehaviour
 	{
 
+		private IButton stageButton;
+
 		public SmartStage()
 		{
+			if (ToolbarManager.ToolbarAvailable)
+			{
+				stageButton = ToolbarManager.Instance.add("SmartStage", "stageButton");
+				stageButton.TexturePath = "SmartStage/SmartStage";
+				stageButton.ToolTip = "Automatically calculate ship stages";
+				stageButton.OnClick += (e) => computeStages();
+			}
+		}
+
+		internal void onDestroy()
+		{
+			if (stageButton != null)
+				stageButton.Destroy();
 		}
 
 		void OnGUI()
 		{
+			// Do not draw button ourself if toolbar is available
+			if (ToolbarManager.ToolbarAvailable)
+				return;
 			if (GUI.Button(new Rect(Screen.width - 100, 50, 100, 20), "Smart stage"))
 			{
 				computeStages();
