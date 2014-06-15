@@ -205,7 +205,7 @@ namespace SmartStage
 				{
 					foreach (KeyValuePair<Propellant, List<Node>> pair in resources)
 					{
-						double rate = maxThrust * atmosphereCurve.Evaluate(0) * pair.Key.ratio / pair.Value.Count;
+						double rate = maxThrust * pair.Key.ratio / (atmosphereCurve.Evaluate(0) * pair.Value.Count);
 						pair.Value.ForEach(tankNode => tankNode.resourceFlow[pair.Key.id] += rate);
 					}
 				}
