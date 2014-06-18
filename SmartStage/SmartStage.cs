@@ -203,9 +203,11 @@ namespace SmartStage
 				// Check if we have all required propellants
 				if (resources.All(pair => pair.Value.Count > 0))
 				{
+					double ratioSum = resources.Sum(pair => pair.Key.ratio);
 					foreach (KeyValuePair<Propellant, List<Node>> pair in resources)
 					{
-						double rate = maxThrust * pair.Key.ratio / (atmosphereCurve.Evaluate(0) * pair.Value.Count);
+						// KSP gravity is 9.82 m/s²
+						double rate = maxThrust * pair.Key.ratio * 9.82 / (atmosphereCurve.Evaluate(0) * pair.Value.Count * ratioSum);
 						pair.Value.ForEach(tankNode => tankNode.resourceFlow[pair.Key.id] += rate);
 					}
 				}
