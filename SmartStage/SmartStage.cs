@@ -144,6 +144,17 @@ namespace SmartStage
 
 			}
 
+			// Put all parachutes in a separate 0 stage
+			int initialStage = 0;
+			foreach (Part part in EditorLogic.fetch.ship.parts)
+			{
+				if (part.Modules.OfType<ModuleParachute>().Count() > 0)
+				{
+					part.inverseStage = 0;
+					initialStage = 1;
+				}
+			}
+
 			// Set stage number correctly
 			Staging.SetStageCount(stages.Count);
 			for (int stage = 0 ; stage < stages.Count; stage++)
@@ -151,9 +162,10 @@ namespace SmartStage
 				var currentStage = stages[stages.Count - stage - 1];
 				foreach(Part part in currentStage.stageParts)
 				{
-					part.inverseStage = stage;
+					part.inverseStage = stage + initialStage;
 				}
 			}
+
 			Staging.SortIcons();
 		}
 
