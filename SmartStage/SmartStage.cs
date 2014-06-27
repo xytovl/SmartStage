@@ -375,10 +375,30 @@ namespace SmartStage
 				// Rule 8
 				return new List<Node>();
 			}
+
+			// Returns true if the exhaust from this engine collides with other parts
+			private bool exhaustDamagesAPart(List<Transform> thrusts)
+			{
+				foreach (var thrust in thrusts)
+				{
+					var hits = Physics.RaycastAll(thrust.position, thrust.forward, 10f);
+					foreach (var hit in hits)
+					{
+						Part target = EditorLogic.GetComponentUpwards<Part>(hit.collider.gameObject);
+						if (target != null && shipParts.ContainsKey(target))
+							return true;
+					}
+				}
+				return false;
+			}
 		
 			//Returns true if the part is an engine and should be turned on according to remaining parts
 			public bool isActiveEngine()
 			{
+				if (part.Modules.OfType<ModuleEngines>().Any(x => exhaustDamagesAPart(x.thrustTransforms))
+					|| part.Modules.OfType<ModuleEnginesFX>().Any(x => exhaustDamagesAPart(x.thrustTransforms)))
+					return false;
+
 				if (part.Modules.OfType<ModuleEngines>().Count() == 0 && part.Modules.OfType<ModuleEnginesFX>().Count() == 0)
 					return false;
 				return part.attachNodes.All(x => (x.id != "bottom" || x.attachedPart == null || !shipParts.ContainsKey(x.attachedPart)));
