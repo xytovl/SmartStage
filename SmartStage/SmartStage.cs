@@ -277,7 +277,9 @@ namespace SmartStage
 			// Returns true if any of the descendant still in the shipParts dictionary has fuel and is not a sepratron
 			public bool hasFuelInChildren()
 			{
-				if (resourceMass.Any(massPair => massPair.Value > 0.0001d) && ! isSepratron(part))
+				if (resourceMass.Any(massPair => massPair.Value > 0.0001d
+						&& PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.STACK_PRIORITY_SEARCH)
+					&& ! isSepratron(part))
 					return true;
 				return part.children.Any(child => shipParts.ContainsKey(child) && shipParts[child].hasFuelInChildren());
 			}
