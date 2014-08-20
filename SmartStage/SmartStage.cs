@@ -278,7 +278,9 @@ namespace SmartStage
 			public bool hasFuelInChildren()
 			{
 				if (resourceMass.Any(massPair => massPair.Value > 0.0001d
-						&& PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.STACK_PRIORITY_SEARCH)
+						&& (PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.STACK_PRIORITY_SEARCH
+							|| PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.NO_FLOW)
+							)
 					&& ! isSepratron(part))
 					return true;
 				return part.children.Any(child => shipParts.ContainsKey(child) && shipParts[child].hasFuelInChildren());
