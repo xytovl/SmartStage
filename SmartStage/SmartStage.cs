@@ -233,9 +233,9 @@ namespace SmartStage
 				if (!isActiveEngine())
 					return currentRequestIdentifier;
 				foreach(ModuleEngines engine in part.Modules.OfType<ModuleEngines>())
-					currentRequestIdentifier = evaluateFuelFlow(engine.propellants, engine.maxThrust, engine.atmosphereCurve, currentRequestIdentifier);
+                    currentRequestIdentifier = evaluateFuelFlow(engine.propellants, engine.maxThrust * engine.currentThrottle, engine.atmosphereCurve, currentRequestIdentifier);
 				foreach(ModuleEnginesFX engine in part.Modules.OfType<ModuleEnginesFX>())
-					currentRequestIdentifier = evaluateFuelFlow(engine.propellants, engine.maxThrust, engine.atmosphereCurve, currentRequestIdentifier);
+                    currentRequestIdentifier = evaluateFuelFlow(engine.propellants, engine.maxThrust * engine.currentThrottle, engine.atmosphereCurve, currentRequestIdentifier);
 				return currentRequestIdentifier;
 			}
 
