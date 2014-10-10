@@ -11,7 +11,10 @@ GIT     := git
 TAR     := tar
 ZIP     := zip
 
-VERSION := $(shell ${GIT} describe --abbrev=0 --tags|sed s/^v//)
+VERSION_MAJOR := 1
+VERSION_MINOR := 3
+
+VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}
 
 ifeq ($(debug),1)
 	DEBUG = -debug
@@ -38,10 +41,11 @@ build/%.dll: ${SOURCEFILES}
 		${SOURCEFILES}
 
 
-package: build/SmartStage.dll
+package: build/SmartStage.dll SmartStage.version
 	mkdir -p package/SmartStage/Plugins
 #	cp -r Parts package/SmartStage
 	cp img/* package/SmartStage/
+	cp SmartStage.version package/SmartStage
 	cp $< package/SmartStage/Plugins/
 
 %.zip:
@@ -49,6 +53,12 @@ package: build/SmartStage.dll
 
 zip: package SmartStage-${VERSION}.zip
 
+SmartStage.version: SmartStage.version.in Makefile
+	sed -e 's/@MAJOR@/'${VERSION_MAJOR}/g -e 's/@MINOR@/'${VERSION_MINOR}/g < SmartStage.version.in > SmartStage.version
+
+release: SmartStage.version zip
+	git commit -m "release v${VERSION}" Makefile SmartStage.version
+	git tag v${VERSION}
 
 clean:
 	@echo "Cleaning up build and package directories..."
