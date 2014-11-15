@@ -70,20 +70,25 @@ namespace SmartStage
 
 		public void computeStages()
 		{
+			List<StageDescription> stages = new List<StageDescription>();
+
 			int requestId = 0;
 			Dictionary<Part,Node> availableNodes = new Dictionary<Part, Node>();
-			foreach (Part p in EditorLogic.fetch.ship.parts)
-				availableNodes.Add(p, new Node(p, availableNodes));
-
-			List<StageDescription> stages = new List<StageDescription>();
-			double elapsedTime = 0;
 
 			//Initialize first stage with available engines and launch clamps
 			stages.Add(new StageDescription(0));
+			foreach (Part p in EditorLogic.fetch.ship.parts)
+			{
+				if (p.Modules.OfType<LaunchClamp>().Count() > 0)
+					stages[0].stageParts.Add(p);
+				else
+					availableNodes.Add(p, new Node(p, availableNodes));
+			}
+
+			double elapsedTime = 0;
 			foreach(Node node in availableNodes.Values)
 			{
-				if ((node.isActiveEngine() && ! isSepratron(node.part))
-					|| node.part.Modules.OfType<LaunchClamp>().Count() > 0)
+				if ((node.isActiveEngine() && ! isSepratron(node.part)))
 					stages[0].stageParts.Add(node.part);
 
 			}
