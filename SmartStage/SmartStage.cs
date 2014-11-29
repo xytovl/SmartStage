@@ -10,35 +10,20 @@ namespace SmartStage
 	public class SmartStage : MonoBehaviour
 	{
 
-		private IButton stageButtonTBM;
-
 		private ApplicationLauncherButton stageButton;
 
 		public SmartStage()
 		{
-			if (ToolbarManager.ToolbarAvailable)
-			{
-				stageButtonTBM = ToolbarManager.Instance.add("SmartStage", "stageButton");
-				stageButtonTBM.TexturePath = "SmartStage/SmartStage";
-				stageButtonTBM.ToolTip = "Automatically calculate ship stages";
-				stageButtonTBM.OnClick += (e) => computeStages();
-			}
-
-			else
-			{
-				stageButton = ApplicationLauncher.Instance.AddModApplication(
-					() => computeStages(),null,
-					null, null,
-					null, null,
-					ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
-					GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false));
-			}
+			stageButton = ApplicationLauncher.Instance.AddModApplication(
+				() => computeStages(),null,
+				null, null,
+				null, null,
+				ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
+				GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false));
 		}
 
         private void onDestroy()
 		{
-			if (stageButtonTBM != null)
-				stageButtonTBM.Destroy();
 
 			if (stageButton != null)
 				ApplicationLauncher.Instance.RemoveModApplication(stageButton);
