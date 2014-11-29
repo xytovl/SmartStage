@@ -1,3 +1,5 @@
+*.csproj
+*.sln
 *.userprefs
 *.zip
 *.swp
