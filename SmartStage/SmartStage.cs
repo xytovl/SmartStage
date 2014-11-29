@@ -14,6 +14,14 @@ namespace SmartStage
 
 		public SmartStage()
 		{
+			GameEvents.onGUIApplicationLauncherReady.Add(addButton);
+			addButton();
+		}
+
+		private void addButton()
+		{
+			removeButton();
+
 			stageButton = ApplicationLauncher.Instance.AddModApplication(
 				() => computeStages(),null,
 				null, null,
@@ -22,11 +30,15 @@ namespace SmartStage
 				GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false));
 		}
 
-        private void onDestroy()
+		private void removeButton()
 		{
-
 			if (stageButton != null)
 				ApplicationLauncher.Instance.RemoveModApplication(stageButton);
+		}
+
+		private void onDestroy()
+		{
+			removeButton();
 		}
 
 		// Let's say a sepratron is an engine with more than 45° inclination
