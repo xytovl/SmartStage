@@ -21,21 +21,23 @@ namespace SmartStage
 		public double vx;
 		public double vz;
 		public double m;
+		private float minThrust;
+		private float maxThrust;
 		public float throttle;
 		public List<EngineWrapper> activeEngines;
 		public Dictionary<Part,Node> availableNodes;
 
+		public bool limitToTerminalVelocity;
+		public double maxAcceleration;
+
 		public SimulationState increment(DState delta, double dt)
 		{
-			SimulationState res = new SimulationState();
-			res.x = x + dt * delta.vx;
-			res.z = z + dt * delta.vz;
-			res.vx = vx + dt * delta.ax;
-			res.vz = vz + dt * delta.az;
-			res.m = m + dt * delta.dm;
-			res.throttle = throttle;
-			res.activeEngines = activeEngines;
-			res.availableNodes = availableNodes;
+			SimulationState res = (SimulationState) MemberwiseClone();
+			res.x += dt * delta.vx;
+			res.z += dt * delta.vz;
+			res.vx += dt * delta.ax;
+			res.vz += dt * delta.az;
+			res.m += dt * delta.dm;
 			return res;
 		}
 
@@ -52,11 +54,12 @@ namespace SmartStage
 					activeParts.Add(node.part);
 				}
 			}
+			minThrust = activeEngines.Sum(e => e.thrust(0));
+			maxThrust = activeEngines.Sum(e => e.thrust(1));
 			return activeParts;
 		}
 		public double r { get { return Math.Sqrt(x * x + z * z);}}
 		public double velocity { get { return Math.Sqrt(vx * vx + vz * vz);}}
-
 
 		public DState derivate(CelestialBody planet)
 		{
@@ -67,12 +70,7 @@ namespace SmartStage
 			double r = this.r;
 			float altitude = (float) (r - planet.Radius);
 			double velocity = this.velocity;
-
-			float throttle = 1; // FIXME: requested throttle
-			res.dm = 0;
-			// Compute flow for active engines
-			foreach (EngineWrapper e in activeEngines)
-				res.dm -= e.evaluateFuelFlow(planet.pressureCurve.Evaluate(altitude), throttle);
+			float pressure = planet.pressureCurve.Evaluate(altitude);
 
 			double theta = 0; // FIXME: thrust direction
 
@@ -85,11 +83,19 @@ namespace SmartStage
 
 			// drag
 			double Cx = 0.2;
-			double rho = FlightGlobals.getAtmDensity(planet.pressureCurve.Evaluate(altitude));
+			double rho = FlightGlobals.getAtmDensity(pressure);
 			double drag_acc_over_velocity = -0.5 * rho * velocity * Cx * FlightGlobals.DragMultiplier;
 
-			// thrust
+			float desiredThrust = float.MaxValue;
+
+			throttle = (desiredThrust - minThrust) / (maxThrust - minThrust);
+			throttle = Math.Max(0, Math.Min(1, throttle));
+
+			// Effective thrust
 			double F = activeEngines.Sum(e => e.thrust(throttle));
+
+			// Propellant mass variation
+			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(pressure, throttle));
 
 			theta += Math.Atan2(u_x, u_z);
 			res.ax = grav_acc * u_x + drag_acc_over_velocity * vx + F / m * Math.Sin(theta);

@@ -43,7 +43,7 @@ namespace SmartStage
 
 		public static void computeStages()
 		{
-			Ship ship = new Ship(EditorLogic.fetch.ship);
+			Ship ship = new Ship(EditorLogic.fetch.ship, Planetarium.fetch.Home, true, 40);
 			ship.computeStages();
 		}
 
@@ -63,7 +63,7 @@ namespace SmartStage
 			List<StageDescription> stages = new List<StageDescription>();
 
 			const double simulationStep = 1;
-			CelestialBody planet = Planetarium.fetch.Home;
+			CelestialBody planet;
 			private SimulationState state = new SimulationState();
 
 			public struct Sample
@@ -73,6 +73,7 @@ namespace SmartStage
 				public double altitude;
 				public double velocity;
 				public double acceleration;
+				public double throttle;
 			}
 
 			List<Sample> samples = new List<Sample>();
@@ -98,8 +99,12 @@ namespace SmartStage
 				return s.increment(ds1, dt/6).increment(ds2, dt/3).increment(ds3, dt/3).increment(ds4, dt/6);
 			}
 
-			public Ship(ShipConstruct stockShip)
+			public Ship(ShipConstruct stockShip, CelestialBody planet, bool limitToTerminalVelocity, double maxAcceleration)
 			{
+				this.planet = planet;
+				state.limitToTerminalVelocity = limitToTerminalVelocity;
+				state.maxAcceleration = maxAcceleration;
+
 				state.x = 0;
 				state.z = planet.Radius;
 				state.vx = 0;
@@ -150,6 +155,7 @@ namespace SmartStage
 					sample.altitude = state.r - planet.Radius;
 					sample.mass = state.m;
 					sample.acceleration = (state.velocity - velocity) / nextEvent;
+					sample.throttle = state.throttle;
 					samples.Add(sample);
 
 					// Burn the fuel !
@@ -220,10 +226,12 @@ namespace SmartStage
 
 				Staging.SortIcons();
 
-				//foreach (var sample in samples)
-				//{
-				//	Debug.Log(sample.time + ";"+sample.altitude+";"+sample.velocity+";"+sample.acceleration+";"+sample.mass);
-				//}
+				#if DEBUG
+				foreach (var sample in samples)
+				{
+					Debug.Log(sample.time + ";"+sample.altitude+";"+sample.velocity+";"+sample.acceleration+";"+sample.mass+";"+sample.throttle);
+				}
+				#endif
 			}
 		}
 

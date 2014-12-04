@@ -68,7 +68,7 @@ namespace SmartStage
 				maxThrust = 0;
 		}
 
-		public double thrust(double throttle)
+		public float thrust(float throttle)
 		{
 			if (throttleLocked)
 				throttle = thrustPercentage/100;
