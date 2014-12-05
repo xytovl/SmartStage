@@ -8,35 +8,50 @@ namespace SmartStage
 	public struct DState
 	{
 		public double vx;
-		public double vz;
+		public double vy;
 		public double ax;
-		public double az;
+		public double ay;
 		public double dm;
 	}
 
 	public class SimulationState
 	{
 		public double x;
-		public double z;
+		public double y;
 		public double vx;
-		public double vz;
+		public double vy;
 		public double m;
 		private float minThrust;
 		private float maxThrust;
 		public float throttle;
 		public List<EngineWrapper> activeEngines;
 		public Dictionary<Part,Node> availableNodes;
+		public double Cx;
+		public CelestialBody planet;
 
 		public bool limitToTerminalVelocity;
 		public double maxAcceleration;
+
+		public SimulationState(CelestialBody planet, double departureAltitude)
+		{
+			this.planet = planet;
+
+			x = 0;
+			y = planet.Radius + departureAltitude;
+			vx = planet.rotates ? (y * 2 * Math.PI / planet.rotationPeriod) : 0;
+			vy = 0;
+			throttle = 1.0f;
+			activeEngines = new List<EngineWrapper>();
+			availableNodes = new Dictionary<Part, Node>();
+		}
 
 		public SimulationState increment(DState delta, double dt)
 		{
 			SimulationState res = (SimulationState) MemberwiseClone();
 			res.x += dt * delta.vx;
-			res.z += dt * delta.vz;
+			res.y += dt * delta.vy;
 			res.vx += dt * delta.ax;
-			res.vz += dt * delta.az;
+			res.vy += dt * delta.ay;
 			res.m += dt * delta.dm;
 			return res;
 		}
@@ -58,37 +73,64 @@ namespace SmartStage
 			maxThrust = activeEngines.Sum(e => e.thrust(1));
 			return activeParts;
 		}
-		public double r { get { return Math.Sqrt(x * x + z * z);}}
-		public double velocity { get { return Math.Sqrt(vx * vx + vz * vz);}}
+		public double r { get { return Math.Sqrt(x * x + y * y);}}
 
-		public DState derivate(CelestialBody planet)
+		// unit vectors
+		private double u_x { get { return x/r;}}
+		private double u_y { get { return y/r;}}
+
+		public double v_surf_x { get { return vx - u_y * (planet.rotates ? (2 * Math.PI * r / planet.rotationPeriod) : 0);}}
+		public double v_surf_y { get { return vy + u_x * (planet.rotates ? (2 * Math.PI * r / planet.rotationPeriod) : 0);}}
+
+		public DState derivate()
 		{
 			DState res = new DState();
 			res.vx = vx;
-			res.vz = vz;
+			res.vy = vy;
 
 			double r = this.r;
 			float altitude = (float) (r - planet.Radius);
-			double velocity = this.velocity;
-			float pressure = planet.pressureCurve.Evaluate(altitude);
+			float pressure = (float)FlightGlobals.getStaticPressure(altitude, planet);
 
-			double theta = 0; // FIXME: thrust direction
-
-			// unit vectors
-			double u_x = x / r;
-			double u_z = z / r;
+			double theta = Math.Atan2(u_x, u_y);
+			double thrustDirection = theta;// FIXME: thrust direction
 
 			// gravity
 			double grav_acc = -planet.gravParameter / (r * r);
 
 			// drag
-			double Cx = 0.2;
 			double rho = FlightGlobals.getAtmDensity(pressure);
-			double drag_acc_over_velocity = -0.5 * rho * velocity * Cx * FlightGlobals.DragMultiplier;
+			double v_surf2 = v_surf_x * v_surf_x + v_surf_y * v_surf_y;
+			double v_surf = Math.Sqrt(v_surf2);
+			double drag_acc = -0.5 * rho * v_surf2 * Cx * FlightGlobals.DragMultiplier;
 
-			float desiredThrust = float.MaxValue;
+			double desiredThrust = double.MaxValue;
 
-			throttle = (desiredThrust - minThrust) / (maxThrust - minThrust);
+			if (v_surf > 0)
+			{
+				// Projection of acceleration components on vessel forward direction
+				double proj = (drag_acc * v_surf_x / v_surf) * Math.Sin(thrustDirection)
+					+ (drag_acc * v_surf_y / v_surf) * Math.Cos(thrustDirection);
+				// Just ignore orthogonal components for acceleration limitation
+				desiredThrust = Math.Min(desiredThrust, (maxAcceleration - proj) * m);
+				// Optimal ascent has the vertical component of drag equal to gravity
+				double drag_ratio = Math.Abs(drag_acc * (v_surf_x * u_x + v_surf_y * u_y) / (grav_acc * v_surf));
+				if (limitToTerminalVelocity && drag_ratio >=1 )
+				{
+					// Thrust at 2 * gravity when drag_ratio is 1, and 0 for a 1.1 ratio
+					desiredThrust = Math.Min(desiredThrust,
+						Math.Cos(theta - thrustDirection) * grav_acc * m * (20 * drag_ratio - 22));
+				}
+			}
+			else
+			{
+				desiredThrust = Math.Min(desiredThrust, maxAcceleration * m);
+			}
+
+			if (maxThrust != minThrust)
+				throttle = ((float)desiredThrust - minThrust) / (maxThrust - minThrust);
+			else
+				throttle = 1;
 			throttle = Math.Max(0, Math.Min(1, throttle));
 
 			// Effective thrust
@@ -97,9 +139,13 @@ namespace SmartStage
 			// Propellant mass variation
 			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(pressure, throttle));
 
-			theta += Math.Atan2(u_x, u_z);
-			res.ax = grav_acc * u_x + drag_acc_over_velocity * vx + F / m * Math.Sin(theta);
-			res.az = grav_acc * u_z + drag_acc_over_velocity * vz + F / m * Math.Cos(theta);
+			res.ax = grav_acc * u_x + F / m * Math.Sin(thrustDirection);
+			res.ay = grav_acc * u_y + F / m * Math.Cos(thrustDirection);
+			if (v_surf != 0)
+			{
+				res.ax += drag_acc * v_surf_x/v_surf;
+				res.ay += drag_acc * v_surf_y/v_surf;
+			}
 
 			return res;
 		}

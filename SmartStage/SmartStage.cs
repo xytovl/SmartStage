@@ -43,7 +43,7 @@ namespace SmartStage
 
 		public static void computeStages()
 		{
-			Ship ship = new Ship(EditorLogic.fetch.ship, Planetarium.fetch.Home, true, 40);
+			Ship ship = new Ship(EditorLogic.fetch.ship, Planetarium.fetch.Home, 68, true, 40);
 			ship.computeStages();
 		}
 
@@ -63,8 +63,7 @@ namespace SmartStage
 			List<StageDescription> stages = new List<StageDescription>();
 
 			const double simulationStep = 1;
-			CelestialBody planet;
-			private SimulationState state = new SimulationState();
+			private SimulationState state;
 
 			public struct Sample
 			{
@@ -91,27 +90,19 @@ namespace SmartStage
 
 			public SimulationState RungeKutta(SimulationState s, double dt)
 			{
-				DState ds1 = s.derivate(planet);
-				DState ds2 = s.increment(ds1, dt / 2).derivate(planet);
-				DState ds3 = s.increment(ds2, dt / 2).derivate(planet);
-				DState ds4 = s.increment(ds3, dt).derivate(planet);
+				DState ds1 = s.derivate();
+				DState ds2 = s.increment(ds1, dt / 2).derivate();
+				DState ds3 = s.increment(ds2, dt / 2).derivate();
+				DState ds4 = s.increment(ds3, dt).derivate();
 
 				return s.increment(ds1, dt/6).increment(ds2, dt/3).increment(ds3, dt/3).increment(ds4, dt/6);
 			}
 
-			public Ship(ShipConstruct stockShip, CelestialBody planet, bool limitToTerminalVelocity, double maxAcceleration)
+			public Ship(ShipConstruct stockShip, CelestialBody planet, double departureAltitude, bool limitToTerminalVelocity, double maxAcceleration)
 			{
-				this.planet = planet;
+				state = new SimulationState(planet, departureAltitude);
 				state.limitToTerminalVelocity = limitToTerminalVelocity;
 				state.maxAcceleration = maxAcceleration;
-
-				state.x = 0;
-				state.z = planet.Radius;
-				state.vx = 0;
-				state.vz = 0;
-				state.throttle = 1.0f;
-				state.activeEngines = new List<EngineWrapper>();
-				state.availableNodes = new Dictionary<Part, Node>();
 
 				//Initialize first stage with available engines and launch clamps
 				stages.Add(new StageDescription(0));
@@ -132,29 +123,32 @@ namespace SmartStage
 				while (state.availableNodes.Count() > 0)
 				{
 					state.m = state.availableNodes.Sum(p => p.Value.mass);
-					float altitude = (float) (state.r - planet.Radius);
+					state.Cx = state.availableNodes.Sum(p => p.Value.mass * p.Value.part.maximum_drag) / state.m;
+					float altitude = (float) (state.r - state.planet.Radius);
 					// Compute flow for active engines
 					foreach (EngineWrapper e in state.activeEngines)
-						e.evaluateFuelFlow(planet.pressureCurve.Evaluate(altitude), state.throttle, false);
+						e.evaluateFuelFlow(state.planet.pressureCurve.Evaluate(altitude), state.throttle, false);
 						
 					double nextEvent = Math.Max(state.availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
 
 					// Quit if there is no other event
-					if (nextEvent == Double.MaxValue)
+					if (nextEvent == Double.MaxValue && state.throttle > 0)
 						break;
 
 
-					nextEvent = Math.Min(nextEvent, Math.Max(simulationStep, nextEvent / 100));
+					nextEvent = Math.Min(nextEvent, simulationStep);
 					elapsedTime += nextEvent;
 
-					double velocity = state.velocity;
+					double vx = state.vx;
+					double vy = state.vy;
 					state = RungeKutta(state, nextEvent);
+					state.derivate(); // Compute updated throttle
 					Sample sample;
 					sample.time = elapsedTime;
-					sample.velocity = state.velocity;
-					sample.altitude = state.r - planet.Radius;
+					sample.velocity = Math.Sqrt(state.v_surf_x * state.v_surf_x + state.v_surf_y * state.v_surf_y) ;
+					sample.altitude = state.r - state.planet.Radius;
 					sample.mass = state.m;
-					sample.acceleration = (state.velocity - velocity) / nextEvent;
+					sample.acceleration = Math.Sqrt((state.vx - vx) * (state.vx - vx) + (state.vy - vy) * (state.vy - vy)) / nextEvent;
 					sample.throttle = state.throttle;
 					samples.Add(sample);
 
@@ -227,10 +221,12 @@ namespace SmartStage
 				Staging.SortIcons();
 
 				#if DEBUG
+				string result = "time;altitude;velocity;acceleration;mass;throttle\n";
 				foreach (var sample in samples)
 				{
-					Debug.Log(sample.time + ";"+sample.altitude+";"+sample.velocity+";"+sample.acceleration+";"+sample.mass+";"+sample.throttle);
+					result += sample.time + ";"+sample.altitude+";"+sample.velocity+";"+sample.acceleration+";"+sample.mass+";"+sample.throttle+"\n";
 				}
+				Debug.Log(result);
 				#endif
 			}
 		}
