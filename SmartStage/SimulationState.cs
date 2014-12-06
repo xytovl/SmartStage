@@ -28,6 +28,7 @@ namespace SmartStage
 		public Dictionary<Part,Node> availableNodes;
 		public double Cx;
 		public CelestialBody planet;
+		private DefaultAscentPath ascentPath;
 
 		public bool limitToTerminalVelocity;
 		public double maxAcceleration;
@@ -43,6 +44,7 @@ namespace SmartStage
 			throttle = 1.0f;
 			activeEngines = new List<EngineWrapper>();
 			availableNodes = new Dictionary<Part, Node>();
+			ascentPath = new DefaultAscentPath(planet);
 		}
 
 		public SimulationState increment(DState delta, double dt)
@@ -93,7 +95,7 @@ namespace SmartStage
 			float pressure = (float)FlightGlobals.getStaticPressure(altitude, planet);
 
 			double theta = Math.Atan2(u_x, u_y);
-			double thrustDirection = theta;// FIXME: thrust direction
+			double thrustDirection = theta + ascentPath.FlightPathAngle(altitude);
 
 			// gravity
 			double grav_acc = -planet.gravParameter / (r * r);
