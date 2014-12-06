@@ -47,33 +47,12 @@ namespace SmartStage
 			ship.computeStages();
 		}
 
-		private class StageDescription
-		{
-			public double activationTime;
-			public List<Part> stageParts;
-			public StageDescription(double activationTime)
-			{
-				this.activationTime = activationTime;
-				stageParts = new List<Part>();
-			}
-		}
-
 		private class Ship
 		{
 			List<StageDescription> stages = new List<StageDescription>();
 
 			const double simulationStep = 1;
 			private SimulationState state;
-
-			public struct Sample
-			{
-				public double time;
-				public double mass;
-				public double altitude;
-				public double velocity;
-				public double acceleration;
-				public double throttle;
-			}
 
 			List<Sample> samples = new List<Sample>();
 
@@ -129,26 +108,27 @@ namespace SmartStage
 					foreach (EngineWrapper e in state.activeEngines)
 						e.evaluateFuelFlow(state.planet.pressureCurve.Evaluate(altitude), state.throttle, false);
 						
-					double nextEvent = Math.Max(state.availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
+					double step = Math.Max(state.availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
 
 					// Quit if there is no other event
-					if (nextEvent == Double.MaxValue && state.throttle > 0)
+					if (step == Double.MaxValue && state.throttle > 0)
 						break;
 
+					if (step > simulationStep)
+						step = Math.Max(simulationStep, (elapsedTime + step - stages.Last().activationTime) / 100);
 
-					nextEvent = Math.Min(nextEvent, simulationStep);
-					elapsedTime += nextEvent;
+					elapsedTime += step;
 
 					double vx = state.vx;
 					double vy = state.vy;
-					state = RungeKutta(state, nextEvent);
+					state = RungeKutta(state, step);
 					state.derivate(); // Compute updated throttle
 					Sample sample;
 					sample.time = elapsedTime;
 					sample.velocity = Math.Sqrt(state.v_surf_x * state.v_surf_x + state.v_surf_y * state.v_surf_y) ;
 					sample.altitude = state.r - state.planet.Radius;
 					sample.mass = state.m;
-					sample.acceleration = Math.Sqrt((state.vx - vx) * (state.vx - vx) + (state.vy - vy) * (state.vy - vy)) / nextEvent;
+					sample.acceleration = Math.Sqrt((state.vx - vx) * (state.vx - vx) + (state.vy - vy) * (state.vy - vy)) / step;
 					sample.throttle = state.throttle;
 					samples.Add(sample);
 
@@ -156,7 +136,7 @@ namespace SmartStage
 					bool eventHappens = false;
 					foreach (Node node in state.availableNodes.Values)
 					{
-						eventHappens |= node.applyFuelConsumption(nextEvent);
+						eventHappens |= node.applyFuelConsumption(step);
 					}
 
 					if (!eventHappens)
@@ -230,7 +210,27 @@ namespace SmartStage
 				#endif
 			}
 		}
+	}
 
+	public class StageDescription
+	{
+		public double activationTime;
+		public List<Part> stageParts;
+		public StageDescription(double activationTime)
+		{
+			this.activationTime = activationTime;
+			stageParts = new List<Part>();
+		}
+	}
+
+	public struct Sample
+	{
+		public double time;
+		public double mass;
+		public double altitude;
+		public double velocity;
+		public double acceleration;
+		public double throttle;
 	}
 }
 
