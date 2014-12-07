@@ -7,6 +7,7 @@ namespace SmartStage
 	public class EngineWrapper
 	{
 		bool throttleLocked;
+		float minThrust;
 		float maxThrust;
 		float thrustPercentage;
 		FloatCurve atmosphereCurve;
@@ -17,6 +18,7 @@ namespace SmartStage
 		public EngineWrapper(ModuleEngines e, Dictionary<Part,Node> availableNodes)
 		{
 			throttleLocked = e.throttleLocked;
+			minThrust = e.minThrust;
 			maxThrust = e.maxThrust;
 			thrustPercentage = e.thrustPercentage;
 			atmosphereCurve = e.atmosphereCurve;
@@ -27,6 +29,7 @@ namespace SmartStage
 		public EngineWrapper(ModuleEnginesFX e, Dictionary<Part,Node> availableNodes)
 		{
 			throttleLocked = e.throttleLocked;
+			minThrust = e.minThrust;
 			maxThrust = e.maxThrust;
 			thrustPercentage = e.thrustPercentage;
 			atmosphereCurve = e.atmosphereCurve;
@@ -71,8 +74,8 @@ namespace SmartStage
 		public float thrust(float throttle)
 		{
 			if (throttleLocked)
-				throttle = thrustPercentage/100;
-			return 1000 * maxThrust * throttle;
+				throttle = 1;
+			return 1000 * ((maxThrust - minThrust) * throttle * thrustPercentage/100 + minThrust);
 		}
 	}
 }
