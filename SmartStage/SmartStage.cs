@@ -6,16 +6,21 @@ using UnityEngine;
 namespace SmartStage
 {
 
-	[KSPAddon(KSPAddon.Startup.EditorVAB, true)]
+	[KSPAddon(KSPAddon.Startup.EditorVAB, false)]
 	public class SmartStage : MonoBehaviour
 	{
 
-		private ApplicationLauncherButton stageButton;
+		private static ApplicationLauncherButton stageButton;
+		private static AscentPlot plot;
+		private static int windowId = GUIUtility.GetControlID(FocusType.Native);
+		private static Rect windowPosition;
+		private static bool showWindow = false;
 
 		public SmartStage()
 		{
 			GameEvents.onGUIApplicationLauncherReady.Add(addButton);
 			addButton();
+			windowPosition = new Rect(Screen.width - 400, Screen.height - 400, 300, 300);
 		}
 
 		private void addButton()
@@ -23,8 +28,8 @@ namespace SmartStage
 			removeButton();
 
 			stageButton = ApplicationLauncher.Instance.AddModApplication(
-				() => computeStages(),null,
-				null, null,
+				computeStages, computeStages,
+				() => showWindow = true, null,
 				null, null,
 				ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
 				GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false));
@@ -45,16 +50,44 @@ namespace SmartStage
 		{
 			Ship ship = new Ship(EditorLogic.fetch.ship, Planetarium.fetch.Home, 68, true, 40);
 			ship.computeStages();
+			plot = new AscentPlot(ship.samples, ship.stages, 300, 300);
+			showWindow = true;
+		}
+
+		public void OnGUI()
+		{
+			if (showWindow)
+				windowPosition = GUILayout.Window(windowId, windowPosition,
+					drawWindow, "SmartStage");
+			if (windowPosition.Contains(Event.current.mousePosition))
+				EditorLogic.fetch.Lock(true, true, true, "SmartStage");
+			else
+			{
+				EditorLogic.fetch.Unlock("SmartStage");
+				if (Event.current.type == EventType.mouseUp && Event.current.button == 0)
+					showWindow = false;
+			}
+		}
+
+		public void drawWindow(int windowid)
+		{
+			GUILayout.BeginHorizontal();
+			if (plot != null)
+				plot.draw();
+			else
+				GUILayout.Label("");
+			GUILayout.EndHorizontal();
+			GUI.DragWindow();
 		}
 
 		private class Ship
 		{
-			List<StageDescription> stages = new List<StageDescription>();
+			public List<StageDescription> stages = new List<StageDescription>();
 
-			const double simulationStep = 1;
+			const double simulationStep = 0.1;
 			private SimulationState state;
 
-			List<Sample> samples = new List<Sample>();
+			public List<Sample> samples = new List<Sample>();
 
 			// Removes all descendants of the given part from the shipParts dictionary
 			public void dropPartAndChildren(Part part)
@@ -116,6 +149,9 @@ namespace SmartStage
 
 					if (step > simulationStep)
 						step = Math.Max(simulationStep, (elapsedTime + step - stages.Last().activationTime) / 100);
+
+					if (state.throttle == 0)
+						step = simulationStep;
 
 					elapsedTime += step;
 
