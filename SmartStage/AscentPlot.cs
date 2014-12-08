@@ -44,8 +44,8 @@ namespace SmartStage
 
 				Color pulsed = Color.Lerp(Color.white, colour, (float)Math.Pow(Math.Cos(pulse)/2 + 1, 3));
 
-				double timeToX = texture.width / time.Last();
-				double valToY = texture.height / values.Max();
+				double timeToX = (texture.width - 1) / time.Last();
+				double valToY = (texture.height - 1) / values.Max();
 				for (int i = 1 ; i < time.Count() ; i++)
 				{
 					texture.SetPixel((int)(time[i] * timeToX), (int)(values[i] * valToY), pulsed);
