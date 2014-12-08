@@ -29,11 +29,12 @@ namespace SmartStage
 				this.time = time;
 				this.values = values;
 				this.colour = colour;
+				var textColour = Color.Lerp(colour, Color.white, 0.3f);
 				active = true;
 				buttonStyle = new GUISkin().button;
-				buttonStyle.normal.textColor = colour;
-				buttonStyle.hover.textColor = colour;
-				buttonStyle.active.textColor = colour;
+				buttonStyle.normal.textColor = textColour;
+				buttonStyle.hover.textColor = textColour;
+				buttonStyle.active.textColor = textColour;
 			}
 
 			public void draw(Texture2D texture)

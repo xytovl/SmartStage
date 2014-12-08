@@ -15,12 +15,17 @@ namespace SmartStage
 		private static int windowId = GUIUtility.GetControlID(FocusType.Native);
 		private static Rect windowPosition;
 		private static bool showWindow = false;
+		private static CelestialBody[] planetObjects = FlightGlobals.Bodies.ToArray();
+		private static string[] planets = FlightGlobals.Bodies.ConvertAll(b => b.GetName()).ToArray();
+		private static int planetId = Array.IndexOf(planetObjects, Planetarium.fetch.Home);
+		private static bool limitToTerminalVelocity = true;
+		private static EditableDouble maxAcceleration = new EditableDouble(0);
 
 		public SmartStage()
 		{
 			GameEvents.onGUIApplicationLauncherReady.Add(addButton);
 			addButton();
-			windowPosition = new Rect(Screen.width - 400, Screen.height - 400, 300, 300);
+			windowPosition = new Rect(Screen.width - 500, Screen.height - 500, 100, 100);
 		}
 
 		private void addButton()
@@ -41,14 +46,9 @@ namespace SmartStage
 				ApplicationLauncher.Instance.RemoveModApplication(stageButton);
 		}
 
-		private void onDestroy()
-		{
-			removeButton();
-		}
-
 		public static void computeStages()
 		{
-			Ship ship = new Ship(EditorLogic.fetch.ship, Planetarium.fetch.Home, 68, true, 40);
+			Ship ship = new Ship(EditorLogic.fetch.ship, planetObjects[planetId], 68, limitToTerminalVelocity, maxAcceleration);
 			ship.computeStages();
 			plot = new AscentPlot(ship.samples, ship.stages, 300, 300);
 			showWindow = true;
@@ -56,10 +56,16 @@ namespace SmartStage
 
 		public void OnGUI()
 		{
+			bool lockEditor = ComboBox.DrawGUI();
+
 			if (showWindow)
+			{
 				windowPosition = GUILayout.Window(windowId, windowPosition,
 					drawWindow, "SmartStage");
-			if (windowPosition.Contains(Event.current.mousePosition))
+				lockEditor |= windowPosition.Contains(Event.current.mousePosition);
+			}
+
+			if (lockEditor)
 				EditorLogic.fetch.Lock(true, true, true, "SmartStage");
 			else
 			{
@@ -71,12 +77,16 @@ namespace SmartStage
 
 		public void drawWindow(int windowid)
 		{
+			GUILayout.BeginVertical();
+			planetId = ComboBox.Box(planetId, planets, planets);
+			limitToTerminalVelocity = GUILayout.Toggle(limitToTerminalVelocity, "Limit to terminal velocity");
 			GUILayout.BeginHorizontal();
+			GUILayout.Label("Max acceleration: ");
+			maxAcceleration.text = GUILayout.TextField(maxAcceleration.text);
+			GUILayout.EndHorizontal();
 			if (plot != null)
 				plot.draw();
-			else
-				GUILayout.Label("");
-			GUILayout.EndHorizontal();
+			GUILayout.EndVertical();
 			GUI.DragWindow();
 		}
 
@@ -114,7 +124,7 @@ namespace SmartStage
 			{
 				state = new SimulationState(planet, departureAltitude);
 				state.limitToTerminalVelocity = limitToTerminalVelocity;
-				state.maxAcceleration = maxAcceleration;
+				state.maxAcceleration = maxAcceleration != 0 ? maxAcceleration : double.MaxValue;
 
 				//Initialize first stage with available engines and launch clamps
 				stages.Add(new StageDescription(0));
@@ -132,7 +142,7 @@ namespace SmartStage
 			public void computeStages()
 			{
 				double elapsedTime = 0;
-				while (state.availableNodes.Count() > 0)
+				while (state.availableNodes.Count() > 0 && state.r > state.planet.Radius)
 				{
 					state.m = state.availableNodes.Sum(p => p.Value.mass);
 					state.Cx = state.availableNodes.Sum(p => p.Value.mass * p.Value.part.maximum_drag) / state.m;
