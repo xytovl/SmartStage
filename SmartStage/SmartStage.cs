@@ -136,7 +136,6 @@ namespace SmartStage
 						state.availableNodes.Add(p, new Node(p));
 				}
 				stages[0].stageParts.AddRange(state.updateEngines());
-
 			}
 
 			public void computeStages()
@@ -163,20 +162,24 @@ namespace SmartStage
 					if (state.throttle == 0)
 						step = simulationStep;
 
+					SimulationState newState = null;
+					while (newState == null || (Math.Abs(state.throttle - newState.throttle) > 0.05 && step > 1e-3))
+					{
+						step /= 2;
+						newState = RungeKutta(state, step);
+						newState.derivate(); // Compute updated throttle
+					}
 					elapsedTime += step;
-
-					double vx = state.vx;
-					double vy = state.vy;
-					state = RungeKutta(state, step);
-					state.derivate(); // Compute updated throttle
 					Sample sample;
 					sample.time = elapsedTime;
-					sample.velocity = Math.Sqrt(state.v_surf_x * state.v_surf_x + state.v_surf_y * state.v_surf_y) ;
-					sample.altitude = state.r - state.planet.Radius;
-					sample.mass = state.m;
-					sample.acceleration = Math.Sqrt((state.vx - vx) * (state.vx - vx) + (state.vy - vy) * (state.vy - vy)) / step;
-					sample.throttle = state.throttle;
+					sample.velocity = Math.Sqrt(newState.v_surf_x * newState.v_surf_x + newState.v_surf_y * newState.v_surf_y) ;
+					sample.altitude = newState.r - state.planet.Radius;
+					sample.mass = newState.m;
+					sample.acceleration = Math.Sqrt((newState.vx - state.vx) * (newState.vx - state.vx) + (newState.vy - state.vy) * (newState.vy - state.vy)) / step;
+					sample.throttle = newState.throttle;
 					samples.Add(sample);
+
+					state = newState;
 
 					// Burn the fuel !
 					bool eventHappens = false;
