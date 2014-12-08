@@ -47,7 +47,7 @@ namespace SmartStage
 				if (resourceMass[flowPair.Key] == 0 || flowPair.Value == 0)
 					continue;
 				resourceMass[flowPair.Key] -= flowPair.Value * time;
-				if (resourceMass[flowPair.Key] < 0)
+				if (resourceMass[flowPair.Key] <= 0)
 				{
 					resourceMass[flowPair.Key] = 0d;
 					depleted = true;

@@ -20,6 +20,7 @@ namespace SmartStage
 		private static int planetId = Array.IndexOf(planetObjects, Planetarium.fetch.Home);
 		private static bool limitToTerminalVelocity = true;
 		private static EditableDouble maxAcceleration = new EditableDouble(0);
+		private static bool advancedSimulation = false;
 
 		public SmartStage()
 		{
@@ -30,6 +31,7 @@ namespace SmartStage
 
 		private void addButton()
 		{
+			plot = null;
 			removeButton();
 
 			stageButton = ApplicationLauncher.Instance.AddModApplication(
@@ -50,7 +52,8 @@ namespace SmartStage
 		{
 			Ship ship = new Ship(EditorLogic.fetch.ship, planetObjects[planetId], 68, limitToTerminalVelocity, maxAcceleration);
 			ship.computeStages();
-			plot = new AscentPlot(ship.samples, ship.stages, 300, 300);
+			if (advancedSimulation)
+				plot = new AscentPlot(ship.samples, ship.stages, 400, 400);
 			showWindow = true;
 		}
 
@@ -78,14 +81,18 @@ namespace SmartStage
 		public void drawWindow(int windowid)
 		{
 			GUILayout.BeginVertical();
-			planetId = ComboBox.Box(planetId, planets, planets);
-			limitToTerminalVelocity = GUILayout.Toggle(limitToTerminalVelocity, "Limit to terminal velocity");
-			GUILayout.BeginHorizontal();
-			GUILayout.Label("Max acceleration: ");
-			maxAcceleration.text = GUILayout.TextField(maxAcceleration.text);
-			GUILayout.EndHorizontal();
-			if (plot != null)
-				plot.draw();
+			advancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
+			if (advancedSimulation)
+			{
+				planetId = ComboBox.Box(planetId, planets, planets);
+				limitToTerminalVelocity = GUILayout.Toggle(limitToTerminalVelocity, "Limit to terminal velocity");
+				GUILayout.BeginHorizontal();
+				GUILayout.Label("Max acceleration: ");
+				maxAcceleration.text = GUILayout.TextField(maxAcceleration.text);
+				GUILayout.EndHorizontal();
+				if (plot != null)
+					plot.draw();
+			}
 			GUILayout.EndVertical();
 			GUI.DragWindow();
 		}
@@ -143,12 +150,21 @@ namespace SmartStage
 				double elapsedTime = 0;
 				while (state.availableNodes.Count() > 0 && state.r > state.planet.Radius)
 				{
-					state.m = state.availableNodes.Sum(p => p.Value.mass);
-					state.Cx = state.availableNodes.Sum(p => p.Value.mass * p.Value.part.maximum_drag) / state.m;
-					float altitude = (float) (state.r - state.planet.Radius);
-					// Compute flow for active engines
-					foreach (EngineWrapper e in state.activeEngines)
-						e.evaluateFuelFlow(state.planet.pressureCurve.Evaluate(altitude), state.throttle, false);
+					if (advancedSimulation)
+					{
+						state.m = state.availableNodes.Sum(p => p.Value.mass);
+						state.Cx = state.availableNodes.Sum(p => p.Value.mass * p.Value.part.maximum_drag) / state.m;
+						float altitude = (float) (state.r - state.planet.Radius);
+						// Compute flow for active engines
+						foreach (EngineWrapper e in state.activeEngines)
+							e.evaluateFuelFlow(state.planet.pressureCurve.Evaluate(altitude), state.throttle, false);
+					}
+					else
+					{
+						// Compute flow for active engines, in vacuum
+						foreach (EngineWrapper e in state.activeEngines)
+							e.evaluateFuelFlow(0, 1, false);
+					}
 						
 					double step = Math.Max(state.availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
 
@@ -156,30 +172,33 @@ namespace SmartStage
 					if (step == Double.MaxValue && state.throttle > 0)
 						break;
 
-					if (step > simulationStep)
-						step = Math.Max(simulationStep, (elapsedTime + step - stages.Last().activationTime) / 100);
-
-					if (state.throttle == 0)
-						step = simulationStep;
-
-					SimulationState newState = null;
-					while (newState == null || (Math.Abs(state.throttle - newState.throttle) > 0.05 && step > 1e-3))
+					if (advancedSimulation)
 					{
-						step /= 2;
-						newState = RungeKutta(state, step);
-						newState.derivate(); // Compute updated throttle
+						if (step > simulationStep)
+							step = Math.Max(simulationStep, (elapsedTime + step - stages.Last().activationTime) / 100);
+
+						if (state.throttle == 0)
+							step = simulationStep;
+
+						SimulationState newState = null;
+						while (newState == null || (Math.Abs(state.throttle - newState.throttle) > 0.05 && step > 1e-3))
+						{
+							step /= 2;
+							newState = RungeKutta(state, step);
+							newState.derivate(); // Compute updated throttle
+						}
+						Sample sample;
+						sample.time = elapsedTime + step;
+						sample.velocity = Math.Sqrt(newState.v_surf_x * newState.v_surf_x + newState.v_surf_y * newState.v_surf_y) ;
+						sample.altitude = newState.r - state.planet.Radius;
+						sample.mass = newState.m;
+						sample.acceleration = Math.Sqrt((newState.vx - state.vx) * (newState.vx - state.vx) + (newState.vy - state.vy) * (newState.vy - state.vy)) / step;
+						sample.throttle = newState.throttle;
+						samples.Add(sample);
+
+						state = newState;
 					}
 					elapsedTime += step;
-					Sample sample;
-					sample.time = elapsedTime;
-					sample.velocity = Math.Sqrt(newState.v_surf_x * newState.v_surf_x + newState.v_surf_y * newState.v_surf_y) ;
-					sample.altitude = newState.r - state.planet.Radius;
-					sample.mass = newState.m;
-					sample.acceleration = Math.Sqrt((newState.vx - state.vx) * (newState.vx - state.vx) + (newState.vy - state.vy) * (newState.vy - state.vy)) / step;
-					sample.throttle = newState.throttle;
-					samples.Add(sample);
-
-					state = newState;
 
 					// Burn the fuel !
 					bool eventHappens = false;
