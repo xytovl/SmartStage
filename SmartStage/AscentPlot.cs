@@ -12,20 +12,23 @@ namespace SmartStage
 		private List<Sample> samples;
 		private List<StageDescription> stages;
 		private List<PlotElement> plots = new List<PlotElement>();
+		public int[] hoveredPoint;
 
 		private class PlotElement
 		{
 			Color colour;
 			public readonly string name;
+			public readonly string unit;
 			List<double> time;
 			List<double> values;
 			public bool active;
 			public float pulse;
 			public readonly GUIStyle buttonStyle;
 
-			public PlotElement(string name, List<double> time, List<double> values, Color colour)
+			public PlotElement(string name, string unit, List<double> time, List<double> values, Color colour)
 			{
 				this.name = name;
+				this.unit = unit;
 				this.time = time;
 				this.values = values;
 				this.colour = colour;
@@ -35,6 +38,20 @@ namespace SmartStage
 				buttonStyle.normal.textColor = textColour;
 				buttonStyle.hover.textColor = textColour;
 				buttonStyle.active.textColor = textColour;
+			}
+
+			public double value(double timePercent)
+			{
+				double timeVal = timePercent * time.Last();
+				for (int i = 1 ; i < time.Count() ; i++)
+				{
+					if (time[i] > timeVal)
+					{
+						double r = (time[i] - timeVal ) / (time[i] - time[i-1]);
+						return values[i-1] + r * (values[i] - values[i-1]);
+					}
+				}
+				return values.Last();
 			}
 
 			public void draw(Texture2D texture)
@@ -61,8 +78,8 @@ namespace SmartStage
 			this.samples = samples;
 			this.stages = stages;
 			List<double> times = samples.ConvertAll(s => s.time);
-			plots.Add(new PlotElement("acceleration", times, samples.ConvertAll(s => s.acceleration), new Color(0.3f, 0.3f, 1)));
-			plots.Add(new PlotElement("velocity", times, samples.ConvertAll(s => s.velocity), new Color(1, 0.3f, 0.3f)));
+			plots.Add(new PlotElement("acceleration", "m/s²", times, samples.ConvertAll(s => s.acceleration), new Color(0.3f, 0.3f, 1)));
+			plots.Add(new PlotElement("surface velocity", "m/s", times, samples.ConvertAll(s => s.velocity), new Color(1, 0.3f, 0.3f)));
 			texture = new Texture2D(xdim, ydim, TextureFormat.RGB24, false);
 			drawTexture();
 		}
@@ -112,6 +129,8 @@ namespace SmartStage
 		private void drawTexture()
 		{
 			fillBackground();
+			if (hoveredPoint != null)
+				drawLine(texture, hoveredPoint[0], 0, hoveredPoint[0], texture.height, Color.yellow);
 			foreach(var e in plots)
 				e.draw(texture);
 			texture.Apply();
@@ -148,13 +167,28 @@ namespace SmartStage
 		{
 			GUILayout.BeginHorizontal();
 			GUILayout.Box(texture, GUIStyle.none, new GUILayoutOption[] { GUILayout.Width(texture.width), GUILayout.Height(texture.height)});
+			if (Event.current.type == EventType.Repaint)
+			{
+				var rect = GUILayoutUtility.GetLastRect(); rect.x +=1; rect.y += 2;
+				Vector2 mouse = Event.current.mousePosition;
+				if (rect.Contains(mouse))
+				{
+					var pos = (mouse - rect.position);
+					hoveredPoint = new int[]{(int) pos.x, (int)(rect.height - pos.y - 1)};
+					GUI.changed = true;
+				}
+				else
+				{
+					GUI.changed |= hoveredPoint != null;
+					hoveredPoint = null;
+				}
+			}
 			GUILayout.BeginVertical();
 			foreach (var e in plots)
 			{
 				if (GUILayout.Button(e.name, e.buttonStyle))
-				{
 					e.active = ! e.active;
-				}
+
 				if (Event.current.type == EventType.Repaint)
 				{
 					if (GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
@@ -169,7 +203,18 @@ namespace SmartStage
 						e.pulse = 0;
 					}
 				}
+
+				if (hoveredPoint != null)
+					GUILayout.Label(Math.Round(e.value((double)hoveredPoint[0] / texture.width), 2).ToString() + e.unit);
+				else
+					GUILayout.Label("");
 			}
+			if (hoveredPoint != null)
+			{
+				GUILayout.Label("time");
+				GUILayout.Label(Math.Round(hoveredPoint[0] * samples.Last().time / texture.width).ToString() + "s");
+			}
+
 			GUILayout.EndVertical();
 			GUILayout.EndHorizontal();
 			if (GUI.changed)

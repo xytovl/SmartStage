@@ -26,7 +26,8 @@ namespace SmartStage
 		{
 			GameEvents.onGUIApplicationLauncherReady.Add(addButton);
 			addButton();
-			windowPosition = new Rect(Screen.width - 500, Screen.height - 500, 100, 100);
+			// Position will be computed dynamically to be on screen
+			windowPosition = new Rect(Screen.width, Screen.height, 0, 0);
 		}
 
 		private void addButton()
@@ -63,9 +64,16 @@ namespace SmartStage
 
 			if (showWindow)
 			{
+				lockEditor |= windowPosition.Contains(Event.current.mousePosition);
+				if (Event.current.type == EventType.Layout)
+				{
+					windowPosition.x = Math.Min(windowPosition.x, Screen.width - windowPosition.width - 50);
+					windowPosition.y = Math.Min(windowPosition.y, Screen.height - windowPosition.height - 50);
+					windowPosition.width = 0;
+					windowPosition.height = 0;
+				}
 				windowPosition = GUILayout.Window(windowId, windowPosition,
 					drawWindow, "SmartStage");
-				lockEditor |= windowPosition.Contains(Event.current.mousePosition);
 			}
 
 			if (lockEditor)
