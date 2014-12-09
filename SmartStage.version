@@ -1,11 +1,11 @@
 {
     "NAME":"SmartStage",
-    "URL":"https://github.com/xytovl/SmartStage/blob/master/SmartStage.version",
-    "DOWNLOAD":"https://github.com/xytovl/SmartStage/releases/download/v1.4/SmartStage-1.4.zip",
+    "URL":"https://raw.githubusercontent.com/xytovl/SmartStage/master/SmartStage.version",
+    "DOWNLOAD":"https://github.com/xytovl/SmartStage/releases/download/v2.0/SmartStage-2.0.zip",
     "VERSION":
     {
-        "MAJOR":1,
-        "MINOR":4,
+        "MAJOR":2,
+        "MINOR":0,
         "PATCH":0,
         "BUILD":0
     },

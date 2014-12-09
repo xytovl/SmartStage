@@ -11,8 +11,8 @@ GIT     := git
 TAR     := tar
 ZIP     := zip
 
-VERSION_MAJOR := 1
-VERSION_MINOR := 4
+VERSION_MAJOR := 2
+VERSION_MINOR := 0
 
 VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}
 
