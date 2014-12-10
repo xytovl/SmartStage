@@ -125,14 +125,15 @@ namespace SmartStage
 				}
 			}
 
-			public SimulationState RungeKutta(SimulationState s, double dt)
+			public DState RungeKutta(ref SimulationState s, double dt)
 			{
 				DState ds1 = s.derivate();
 				DState ds2 = s.increment(ds1, dt / 2).derivate();
 				DState ds3 = s.increment(ds2, dt / 2).derivate();
 				DState ds4 = s.increment(ds3, dt).derivate();
 
-				return s.increment(ds1, dt/6).increment(ds2, dt/3).increment(ds3, dt/3).increment(ds4, dt/6);
+				s = s.increment(ds1, dt/6).increment(ds2, dt/3).increment(ds3, dt/3).increment(ds4, dt/6);
+				return ds1;
 			}
 
 			public Ship(ShipConstruct stockShip, CelestialBody planet, double departureAltitude, bool limitToTerminalVelocity, double maxAcceleration)
@@ -188,23 +189,22 @@ namespace SmartStage
 						if (state.throttle == 0)
 							step = simulationStep;
 
-						SimulationState newState = null;
-						while (newState == null || (Math.Abs(state.throttle - newState.throttle) > 0.05 && step > 1e-3))
+						float throttle = state.throttle;
+						DState dState = RungeKutta(ref state, step);
+						while (Math.Abs(state.throttle - throttle) > 0.05 && step > 1e-3)
 						{
 							step /= 2;
-							newState = RungeKutta(state, step);
-							newState.derivate(); // Compute updated throttle
+							dState = RungeKutta(ref state, step);
 						}
 						Sample sample;
 						sample.time = elapsedTime + step;
-						sample.velocity = Math.Sqrt(newState.v_surf_x * newState.v_surf_x + newState.v_surf_y * newState.v_surf_y) ;
-						sample.altitude = newState.r - state.planet.Radius;
-						sample.mass = newState.m;
-						sample.acceleration = Math.Sqrt((newState.vx - state.vx) * (newState.vx - state.vx) + (newState.vy - state.vy) * (newState.vy - state.vy)) / step;
-						sample.throttle = newState.throttle;
-						samples.Add(sample);
-
-						state = newState;
+						sample.velocity = Math.Sqrt(state.v_surf_x * state.v_surf_x + state.v_surf_y * state.v_surf_y) ;
+						sample.altitude = state.r - state.planet.Radius;
+						sample.mass = state.m;
+						sample.acceleration = Math.Sqrt(dState.ax_nograv * dState.ax_nograv + dState.ay_nograv * dState.ay_nograv);
+						sample.throttle = state.throttle;
+						if (samples.Count == 0 || samples.Last().time + simulationStep <= sample.time)
+							samples.Add(sample);
 					}
 					elapsedTime += step;
 

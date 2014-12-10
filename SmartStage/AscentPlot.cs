@@ -25,13 +25,14 @@ namespace SmartStage
 			public float pulse;
 			public readonly GUIStyle buttonStyle;
 
-			public PlotElement(string name, string unit, List<double> time, List<double> values, Color colour)
+			public PlotElement(string name, string unit, List<double> time, List<double> values, Color colour, bool active = true)
 			{
 				this.name = name;
 				this.unit = unit;
 				this.time = time;
 				this.values = values;
 				this.colour = colour;
+				this.active = active;
 				var textColour = Color.Lerp(colour, Color.white, 0.3f);
 				active = true;
 				buttonStyle = new GUISkin().button;
@@ -80,6 +81,8 @@ namespace SmartStage
 			List<double> times = samples.ConvertAll(s => s.time);
 			plots.Add(new PlotElement("acceleration", "m/s²", times, samples.ConvertAll(s => s.acceleration), new Color(0.3f, 0.3f, 1)));
 			plots.Add(new PlotElement("surface velocity", "m/s", times, samples.ConvertAll(s => s.velocity), new Color(1, 0.3f, 0.3f)));
+			plots.Add(new PlotElement("altitude", "m", times, samples.ConvertAll(s => s.altitude), new Color(0.5f, 0.5f, 0.3f), false));
+			plots.Add(new PlotElement("throttle", "%", times, samples.ConvertAll(s => s.throttle * 100), new Color(0.3f, 0.3f, 0.3f)));
 			texture = new Texture2D(xdim, ydim, TextureFormat.RGB24, false);
 			drawTexture();
 		}

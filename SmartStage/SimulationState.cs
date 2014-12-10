@@ -12,6 +12,9 @@ namespace SmartStage
 		public double ax;
 		public double ay;
 		public double dm;
+		//For plot
+		public double ax_nograv;
+		public double ay_nograv;
 	}
 
 	public class SimulationState
@@ -141,13 +144,15 @@ namespace SmartStage
 			// Propellant mass variation
 			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(pressure, throttle));
 
-			res.ax = grav_acc * u_x + F / m * Math.Sin(thrustDirection);
-			res.ay = grav_acc * u_y + F / m * Math.Cos(thrustDirection);
+			res.ax_nograv = F / m * Math.Sin(thrustDirection);
+			res.ay_nograv = F / m * Math.Cos(thrustDirection);
 			if (v_surf != 0)
 			{
-				res.ax += drag_acc * v_surf_x/v_surf;
-				res.ay += drag_acc * v_surf_y/v_surf;
+				res.ax_nograv += drag_acc * v_surf_x/v_surf;
+				res.ay_nograv += drag_acc * v_surf_y/v_surf;
 			}
+			res.ax = res.ax_nograv + grav_acc * u_x;
+			res.ay = res.ay_nograv + grav_acc * u_y;
 
 			return res;
 		}
