@@ -190,9 +190,11 @@ namespace SmartStage
 							step = simulationStep;
 
 						float throttle = state.throttle;
+						var savedState = state;
 						DState dState = RungeKutta(ref state, step);
 						while (Math.Abs(state.throttle - throttle) > 0.05 && step > 1e-3)
 						{
+							state = savedState;
 							step /= 2;
 							dState = RungeKutta(ref state, step);
 						}
