@@ -133,7 +133,7 @@ namespace SmartStage
 		{
 			fillBackground();
 			if (hoveredPoint != null)
-				drawLine(texture, hoveredPoint[0], 0, hoveredPoint[0], texture.height, Color.yellow);
+				drawLine(texture, hoveredPoint[0], 0, hoveredPoint[0], texture.height, new Color(0.4f, 0.4f, 0));
 			foreach(var e in plots)
 				e.draw(texture);
 			texture.Apply();

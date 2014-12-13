@@ -92,6 +92,7 @@ namespace SmartStage
 			advancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
 			if (advancedSimulation)
 			{
+				int oldId = planetId;
 				planetId = ComboBox.Box(planetId, planets, planets);
 				limitToTerminalVelocity = GUILayout.Toggle(limitToTerminalVelocity, "Limit to terminal velocity");
 				GUILayout.BeginHorizontal();
@@ -100,6 +101,8 @@ namespace SmartStage
 				GUILayout.EndHorizontal();
 				if (plot != null)
 					plot.draw();
+				if (oldId != planetId)
+					computeStages();
 			}
 			GUILayout.EndVertical();
 			GUI.DragWindow();
