@@ -20,6 +20,8 @@ namespace SmartStage
 		private static int planetId = Array.IndexOf(planetObjects, Planetarium.fetch.Home);
 		private static bool limitToTerminalVelocity = true;
 		private static EditableDouble maxAcceleration = new EditableDouble(0);
+		// Correction factor to limit to terminal velocity closer to MechJeb's limitation
+		public static EditableDouble terminalVelocityCorrectionFactor = new EditableDouble(1.2);
 		private static bool advancedSimulation = false;
 
 		public SmartStage()
@@ -99,6 +101,12 @@ namespace SmartStage
 				GUILayout.Label("Max acceleration: ");
 				maxAcceleration.text = GUILayout.TextField(maxAcceleration.text);
 				GUILayout.EndHorizontal();
+				#if DEBUG
+				GUILayout.BeginHorizontal();
+				GUILayout.Label("lambda: ");
+				terminalVelocityCorrectionFactor.text = GUILayout.TextField(terminalVelocityCorrectionFactor.text);
+				GUILayout.EndHorizontal();
+				#endif
 				if (plot != null)
 					plot.draw();
 				if (oldId != planetId)
