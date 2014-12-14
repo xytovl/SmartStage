@@ -119,10 +119,11 @@ namespace SmartStage
 				// Just ignore orthogonal components for acceleration limitation
 				desiredThrust = Math.Min(desiredThrust, (maxAcceleration - proj) * m);
 				// Optimal ascent has the vertical component of drag equal to gravity
-				if (limitToTerminalVelocity && Math.Abs(Math.Cos(theta - thrustDirection)) > 1e-3)
+				double drag_ratio = Math.Abs(drag_acc * (v_surf_x * u_x + v_surf_y * u_y) / (grav_acc * v_surf));
+				if (limitToTerminalVelocity && Math.Abs(Math.Cos(theta - thrustDirection)) > 1e-3 && drag_ratio >0.9)
 				{
 					desiredThrust = Math.Min(desiredThrust,
-						-2 * SmartStage.terminalVelocityCorrectionFactor * grav_acc * m / Math.Cos(theta - thrustDirection));
+						-2 /(SmartStage.terminalVelocityCorrectionFactor *(drag_ratio - 0.9)) * grav_acc * m / Math.Cos(theta - thrustDirection));
 				}
 			}
 			else

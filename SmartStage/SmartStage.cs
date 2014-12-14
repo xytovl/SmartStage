@@ -21,7 +21,7 @@ namespace SmartStage
 		private static bool limitToTerminalVelocity = true;
 		private static EditableDouble maxAcceleration = new EditableDouble(0);
 		// Correction factor to limit to terminal velocity closer to MechJeb's limitation
-		public static EditableDouble terminalVelocityCorrectionFactor = new EditableDouble(1.2);
+		public static EditableDouble terminalVelocityCorrectionFactor = new EditableDouble(5);
 		private static bool advancedSimulation = false;
 
 		public SmartStage()
