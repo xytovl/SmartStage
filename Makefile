@@ -3,7 +3,8 @@
 KSPDIR  := ${HOME}/.local/share/Steam/SteamApps/common/Kerbal\ Space\ Program
 MANAGED := ${KSPDIR}/KSP_Data/Managed/
 
-SOURCEFILES := $(wildcard SmartStage/*.cs)
+SOURCEFILES := $(wildcard SmartStage/*.cs)\
+	$(wildcard SmartStage/GUI/*.cs)
 
 RESGEN2 := resgen2
 GMCS    := gmcs
