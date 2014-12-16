@@ -91,7 +91,13 @@ namespace SmartStage
 		{
 			bool draggable = true;
 			GUILayout.BeginVertical();
-			advancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
+			bool newAdvancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
+			if (!newAdvancedSimulation && advancedSimulation)
+			{
+				windowPosition.width = 0;
+				windowPosition.height = 0;
+			}
+			advancedSimulation = newAdvancedSimulation;
 			if (advancedSimulation)
 			{
 				int oldId = planetId;
