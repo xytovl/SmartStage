@@ -6,7 +6,7 @@
     {
         "MAJOR":@MAJOR@,
         "MINOR":@MINOR@,
-        "PATCH":0,
+        "PATCH":@PATH@,
         "BUILD":0
     },
     "KSP_VERSION":
