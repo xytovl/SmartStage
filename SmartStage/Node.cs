@@ -171,7 +171,7 @@ namespace SmartStage
 				var hits = Physics.RaycastAll(thrust.position, thrust.forward, 10f);
 				foreach (var hit in hits)
 				{
-					Part target = EditorLogic.GetComponentUpwards<Part>(hit.collider.gameObject);
+					Part target = Part.GetComponentUpwards<Part>(hit.collider.gameObject);
 					if (target != null && availableNodes.ContainsKey(target))
 						return true;
 				}
