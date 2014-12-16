@@ -14,8 +14,9 @@ ZIP     := zip
 
 VERSION_MAJOR := 2
 VERSION_MINOR := 3
+VERSION_PATCH := 1
 
-VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}
+VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
 
 ifeq ($(debug),1)
 	DEBUG = -debug
@@ -55,7 +56,7 @@ package: build/SmartStage.dll SmartStage.version
 zip: package SmartStage-${VERSION}.zip
 
 SmartStage.version: SmartStage.version.in Makefile
-	sed -e 's/@MAJOR@/'${VERSION_MAJOR}/g -e 's/@MINOR@/'${VERSION_MINOR}/g < SmartStage.version.in > SmartStage.version
+	sed -e 's/@MAJOR@/'${VERSION_MAJOR}/g -e 's/@MINOR@/'${VERSION_MINOR}/g -e 's/@PATCH@/'${VERSION_PATCH}/g < SmartStage.version.in > SmartStage.version
 
 release: SmartStage.version zip
 	git commit -m "release v${VERSION}" Makefile SmartStage.version
