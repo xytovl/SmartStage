@@ -105,7 +105,8 @@ namespace SmartStage
 			// Rule 2
 			foreach (Part p in availableNodes.Keys)
 			{
-				if (p is FuelLine && ((FuelLine)p).target == part)
+				var cp = p as CompoundPart;
+				if (cp != null && cp.target == part && cp.fuelCrossFeed)
 				{
 					result.AddRange(availableNodes[p.parent].GetTanks(propellantId, availableNodes, visitedTanks));
 				}
