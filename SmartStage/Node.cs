@@ -12,6 +12,9 @@ namespace SmartStage
 		private Dictionary<int, double> resourceMass;
 		public Dictionary<int, double> resourceFlow;
 
+		// List of nodes that point to the current node
+		public List<Part> linkedParts = new List<Part>();
+
 		private double baseMass;
 
 		public Node(Part part)
@@ -103,13 +106,10 @@ namespace SmartStage
 			visitedTanks.Add(part);
 
 			// Rule 2
-			foreach (Part p in availableNodes.Keys)
+			foreach (Part p in linkedParts)
 			{
-				var cp = p as CompoundPart;
-				if (cp != null && cp.target == part && cp.fuelCrossFeed)
-				{
-					result.AddRange(availableNodes[p.parent].GetTanks(propellantId, availableNodes, visitedTanks));
-				}
+				if (availableNodes.ContainsKey(p))
+					result.AddRange(availableNodes[p].GetTanks(propellantId, availableNodes, visitedTanks));
 			}
 
 			if (result.Count > 0)

@@ -75,6 +75,12 @@ namespace SmartStage
 				else
 					state.availableNodes.Add(p, new Node(p));
 			}
+			foreach (CompoundPart p in stockShip.parts.OfType<CompoundPart>())
+			{
+				if (p.Modules.OfType<CompoundParts.CModuleFuelLine>().Count() > 0
+					&& state.availableNodes.ContainsKey(p.target))
+					state.availableNodes[p.target].linkedParts.Add(p.parent);
+			}
 			stages[0].stageParts.AddRange(state.updateEngines());
 		}
 
