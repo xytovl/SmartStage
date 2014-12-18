@@ -15,6 +15,9 @@ namespace SmartStage
 		// List of nodes that point to the current node
 		public List<Part> linkedParts = new List<Part>();
 
+		// For engines, parts hit by thrust raycast
+		private List<Part> raycastHit = new List<Part>();
+
 		private double baseMass;
 
 		public Node(Part part)
@@ -23,6 +26,11 @@ namespace SmartStage
 			resourceMass = part.Resources.list.ToDictionary(x => x.info.id, x => x.enabled ? x.info.density * x.amount * 1000 : 0);
 			resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
 			baseMass = 1000 * part.mass + part.Resources.list.Sum(x => x.enabled ? 0 : x.info.density * x.amount * 1000);
+
+			foreach (var e in part.Modules.OfType<ModuleEngines>())
+				computeRaycastHits(e.thrustTransforms);
+			foreach (var e in part.Modules.OfType<ModuleEnginesFX>())
+				computeRaycastHits(e.thrustTransforms);
 		}
 
 		public double mass { get
@@ -166,20 +174,21 @@ namespace SmartStage
 			return new List<Node>();
 		}
 
-		// Returns true if the exhaust from this engine collides with other parts
-		private bool exhaustDamagesAPart(List<Transform> thrusts, Dictionary<Part,Node> availableNodes)
+		private void computeRaycastHits(List<Transform> thrusts)
 		{
 			foreach (var thrust in thrusts)
 			{
 				var hits = Physics.RaycastAll(thrust.position, thrust.forward, 10f);
-				foreach (var hit in hits)
-				{
-					Part target = Part.GetComponentUpwards<Part>(hit.collider.gameObject);
-					if (target != null && availableNodes.ContainsKey(target))
-						return true;
-				}
+				raycastHit.AddRange(hits.Select(hit => Part.GetComponentUpwards<Part>(hit.collider.gameObject)));
 			}
-			return false;
+		}
+
+		// Returns true if the exhaust from this engine collides with other parts
+		private bool exhaustDamagesAPart(Dictionary<Part,Node> availableNodes)
+		{
+			if (raycastHit.Count() == 0)
+				return false;
+			return raycastHit.Any(p => availableNodes.ContainsKey(p));
 		}
 
 		//Returns true if the part is an engine and should be turned on according to remaining parts
@@ -188,8 +197,7 @@ namespace SmartStage
 			if (part.Modules.OfType<ModuleEngines>().Count() == 0 && part.Modules.OfType<ModuleEnginesFX>().Count() == 0)
 				return false;
 
-			if (part.Modules.OfType<ModuleEngines>().Any(x => exhaustDamagesAPart(x.thrustTransforms, availableNodes))
-				|| part.Modules.OfType<ModuleEnginesFX>().Any(x => exhaustDamagesAPart(x.thrustTransforms, availableNodes)))
+			if (exhaustDamagesAPart(availableNodes))
 				return false;
 
 			return part.attachNodes.All(x => (x.id != "bottom" || x.attachedPart == null || !availableNodes.ContainsKey(x.attachedPart)));
