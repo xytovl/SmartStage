@@ -209,12 +209,15 @@ namespace SmartStage
 			Staging.SortIcons();
 
 			#if DEBUG
-			string result = "time;altitude;velocity;acceleration;mass;throttle\n";
-			foreach (var sample in samples)
+			if (samples.Count() > 0)
 			{
-				result += sample.time + ";"+sample.altitude+";"+sample.velocity+";"+sample.acceleration+";"+sample.mass+";"+sample.throttle+"\n";
+				string result = "time;altitude;velocity;acceleration;mass;throttle\n";
+				foreach (var sample in samples)
+				{
+					result += sample.time + ";"+sample.altitude+";"+sample.velocity+";"+sample.acceleration+";"+sample.mass+";"+sample.throttle+"\n";
+				}
+				Debug.Log(result);
 			}
-			Debug.Log(result);
 			#endif
 		}
 	}
