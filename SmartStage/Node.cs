@@ -72,16 +72,18 @@ namespace SmartStage
 			return part.children.Any(child => availableNodes.ContainsKey(child) && availableNodes[child].hasFuelInChildren(availableNodes));
 		}
 
-		// Returns the list of descendants in the shipParts dictionary that are considered sepratrons
-		public List<Part> getSepratronChildren(Dictionary<Part,Node> availableNodes)
+		// Returns the list of descendants in the shipParts dictionary that should be activated when node is decoupled
+		public List<Part> getRelevantChildrenOnDecouple(Dictionary<Part,Node> availableNodes)
 		{
 			List<Part> result = new List<Part>();
-			if (isSepratron(part))
+			if (part.Modules.OfType<ModuleEngines>().Count() > 0
+				||part.Modules.OfType<ModuleEnginesFX>().Count() > 0
+				||part.Modules.OfType<ModuleParachute>().Count() > 0)
 				result.Add(part);
 			foreach(Part child in part.children)
 			{
 				if (availableNodes.ContainsKey(child))
-					result.AddRange(availableNodes[child].getSepratronChildren(availableNodes));
+					result.AddRange(availableNodes[child].getRelevantChildrenOnDecouple(availableNodes));
 			}
 			return result;
 		}

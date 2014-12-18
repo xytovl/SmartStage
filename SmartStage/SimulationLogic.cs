@@ -164,18 +164,18 @@ namespace SmartStage
 
 				if (newStage.stageParts.Count > 0)
 					stages.Add(newStage);
-				List<Part> sepratrons = new List<Part>();
+				List<Part> activableChildren = new List<Part>();
 
-				// Remove all decoupled elements, fire sepratrons
+				// Remove all decoupled elements, fire sepratrons and parachutes
 				foreach(Part part in newStage.stageParts)
 				{
 					if (state.availableNodes.ContainsKey(part))
 					{
-						sepratrons.AddRange(state.availableNodes[part].getSepratronChildren(state.availableNodes));
+						activableChildren.AddRange(state.availableNodes[part].getRelevantChildrenOnDecouple(state.availableNodes));
 						dropPartAndChildren(part);
 					}
 				}
-				newStage.stageParts.AddRange(sepratrons);
+				newStage.stageParts.AddRange(activableChildren);
 				// Update available engines and fuel flow
 				List<Part> activeEngines = state.updateEngines();
 
@@ -184,9 +184,9 @@ namespace SmartStage
 
 			}
 
-			// Put all parachutes in a separate 0 stage
+			// Put all remaining parachutes in a separate 0 stage
 			int initialStage = 0;
-			foreach (Part part in EditorLogic.fetch.ship.parts)
+			foreach (Part part in state.availableNodes.Keys)
 			{
 				if (part.Modules.OfType<ModuleParachute>().Count() > 0)
 				{
