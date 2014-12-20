@@ -14,14 +14,18 @@ namespace SmartStage
 		public float pulse;
 		public readonly GUIStyle buttonStyle;
 		private readonly Func<Sample, double> selector;
+		private readonly double? fixedMin;
+		private readonly double? fixedMax;
 
-		public PlotElement(string name, string unit, Func<Sample, double> selector, Color colour, bool active = true)
+		public PlotElement(string name, string unit, Func<Sample, double> selector, Color colour, bool active = true, double? fixedMin = null, double? fixedMax = null)
 		{
 			this.name = name;
 			this.unit = unit;
 			this.selector = selector;
 			this.colour = colour;
 			this.active = active;
+			this.fixedMin = fixedMin;
+			this.fixedMax = fixedMax;
 			var textColour = Color.Lerp(colour, Color.white, 0.3f);
 			active = true;
 			buttonStyle = new GUISkin().button;
@@ -49,7 +53,10 @@ namespace SmartStage
 				return;
 
 			Color pulsed = Color.Lerp(Color.white, colour, (float)Math.Pow(Math.Cos(pulse)/2 + 1, 3));
-			Scale valScale = new Scale(samples.Min(selector), samples.Max(selector), texture.width);
+			Scale valScale = new Scale(
+				fixedMin ?? samples.Min(selector),
+				fixedMax ?? samples.Max(selector),
+				texture.width);
 			for (int i = 1 ; i < samples.Count() ; i++)
 			{
 				TextureUtils.drawLine(texture,

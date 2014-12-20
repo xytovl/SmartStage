@@ -59,10 +59,10 @@ namespace SmartStage
 			zoomedSamples = samples;
 			this.stages = stages;
 			timeScale = new Scale(samples.First().time, samples.Last().time, xdim);
-			plots.Add(new PlotElement("acceleration", "m/s²", s => s.acceleration, new Color(0.3f, 0.3f, 1)));
+			plots.Add(new PlotElement("acceleration", "m/s²", s => s.acceleration, new Color(0.3f, 0.3f, 1), fixedMin:0));
 			plots.Add(new PlotElement("surface velocity", "m/s", s => s.velocity, new Color(1, 0.3f, 0.3f)));
 			plots.Add(new PlotElement("altitude", "m", s => s.altitude, new Color(0.5f, 0.5f, 0.3f), false));
-			plots.Add(new PlotElement("throttle", "%", s => s.throttle * 100, new Color(0.3f, 0.3f, 0.3f)));
+			plots.Add(new PlotElement("throttle", "%", s => s.throttle * 100, new Color(0.3f, 0.3f, 0.3f), fixedMin:0, fixedMax:100));
 			texture = new Texture2D(xdim, ydim, TextureFormat.RGB24, false);
 			drawTexture();
 		}
