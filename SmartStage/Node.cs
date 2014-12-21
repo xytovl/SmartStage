@@ -25,7 +25,10 @@ namespace SmartStage
 			this.part = part;
 			resourceMass = part.Resources.list.ToDictionary(x => x.info.id, x => x.enabled ? x.info.density * x.amount * 1000 : 0);
 			resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
-			baseMass = 1000 * part.mass + part.Resources.list.Sum(x => x.enabled ? 0 : x.info.density * x.amount * 1000);
+			if (part.physicalSignificance != Part.PhysicalSignificance.NONE && part.PhysicsSignificance != 1)
+				baseMass = 1000 * part.mass + part.Resources.list.Sum(x => x.enabled ? 0 : x.info.density * x.amount * 1000);
+			else
+				baseMass = 0;
 
 			foreach (var e in part.Modules.OfType<ModuleEngines>())
 				computeRaycastHits(e.thrustTransforms);
