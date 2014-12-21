@@ -179,7 +179,9 @@ namespace SmartStage
 			foreach (var thrust in thrusts)
 			{
 				var hits = Physics.RaycastAll(thrust.position, thrust.forward, 10f);
-				raycastHit.AddRange(hits.Select(hit => Part.GetComponentUpwards<Part>(hit.collider.gameObject)));
+				raycastHit.AddRange(
+					hits.Select(hit => Part.GetComponentUpwards<Part>(hit.collider.gameObject))
+						.Where(x => x != null));
 			}
 		}
 
