@@ -86,6 +86,9 @@ namespace SmartStage
 
 		public void computeStages()
 		{
+			#if DEBUG
+			DateTime startTime = DateTime.Now;
+			#endif
 			double elapsedTime = 0;
 			while (state.availableNodes.Count() > 0 && state.r > state.planet.Radius)
 			{
@@ -209,6 +212,8 @@ namespace SmartStage
 			Staging.SortIcons();
 
 			#if DEBUG
+			var compTime = DateTime.Now - startTime;
+			Debug.Log("Staging computed in " + compTime.TotalMilliseconds + "ms");
 			if (samples.Count() > 0)
 			{
 				string result = "time;altitude;velocity;acceleration;mass;throttle\n";
