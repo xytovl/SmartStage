@@ -90,7 +90,7 @@ namespace SmartStage
 			DateTime startTime = DateTime.Now;
 			#endif
 			double elapsedTime = 0;
-			while (state.availableNodes.Count() > 0 && state.r > state.planet.Radius)
+			while (state.availableNodes.Count() > 0)
 			{
 				if (advancedSimulation)
 				{

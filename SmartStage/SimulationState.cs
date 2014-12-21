@@ -58,6 +58,14 @@ namespace SmartStage
 			res.vx += dt * delta.ax;
 			res.vy += dt * delta.ay;
 			res.m += dt * delta.dm;
+			if (r2 <= res.planet.Radius * res.planet.Radius)
+			{
+				double r = res.r;
+				res.x *= res.planet.Radius / r;
+				res.y *= res.planet.Radius / r;
+				res.vx = res.y * (planet.rotates ? (2 * Math.PI / planet.rotationPeriod) : 0);
+				res.vy = - res.x * (planet.rotates ? (2 * Math.PI / planet.rotationPeriod) : 0);
+			}
 			return res;
 		}
 
@@ -79,6 +87,7 @@ namespace SmartStage
 			return activeParts;
 		}
 		public double r { get { return Math.Sqrt(x * x + y * y);}}
+		public double r2 { get { return x * x + y * y;}}
 
 		// unit vectors
 		private double u_x { get { return x/r;}}
