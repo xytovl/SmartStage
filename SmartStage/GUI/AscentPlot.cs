@@ -132,7 +132,7 @@ namespace SmartStage
 				if (samples[i].time > timeScale.max)
 					maxIndex = i;
 			}
-			zoomedSamples = samples.GetRange(minIndex, maxIndex - minIndex);
+			zoomedSamples = samples.GetRange(minIndex, maxIndex - minIndex + 1);
 		}
 
 		public bool draw()
@@ -179,7 +179,7 @@ namespace SmartStage
 						mouseDown = false;
 						if (Math.Abs(selectedTime - hoveredPoint.Value) > 5)
 						{
-							rescale(selectedTime, hoveredPoint.Value);
+							rescale(timeScale.fromPlot(selectedTime), timeScale.fromPlot(hoveredPoint.Value));
 						}
 					}
 					break;
@@ -189,7 +189,7 @@ namespace SmartStage
 					double lambda = Event.current.delta.y < 0 ? 0.9 : 1/0.9;
 					double deltax = timeScale.max - timeScale.min;
 
-					double newminx = timeScale.fromPlot(hoveredPoint.Value) - hoveredPoint.Value * lambda * deltax / texture.width;
+					double newminx = timeScale.fromPlot(hoveredPoint.Value) - hoveredPoint.Value * lambda * deltax / (texture.width - 1);
 					newminx = Math.Max(newminx, 0);
 					double newmaxx = Math.Min(newminx + lambda * deltax, samples.Last().time);
 					rescale(newminx, newmaxx);
