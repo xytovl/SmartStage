@@ -187,11 +187,16 @@ namespace SmartStage
 
 			}
 
-			// Put all remaining parachutes in a separate 0 stage
+			// Put all remaining items (parachutes?) in a separate 0 stage
+			foreach(var stage in stages)
+			{
+				foreach (var part in stage.stageParts)
+					state.availableNodes.Remove(part);
+			}
 			int initialStage = 0;
 			foreach (Part part in state.availableNodes.Keys)
 			{
-				if (part.Modules.OfType<ModuleParachute>().Count() > 0)
+				if (part.hasStagingIcon)
 				{
 					part.inverseStage = 0;
 					initialStage = 1;

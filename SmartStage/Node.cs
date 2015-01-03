@@ -87,9 +87,7 @@ namespace SmartStage
 		public List<Part> getRelevantChildrenOnDecouple(Dictionary<Part,Node> availableNodes)
 		{
 			List<Part> result = new List<Part>();
-			if (part.Modules.OfType<ModuleEngines>().Count() > 0
-				||part.Modules.OfType<ModuleEnginesFX>().Count() > 0
-				||part.Modules.OfType<ModuleParachute>().Count() > 0)
+			if (part.hasStagingIcon)
 				result.Add(part);
 			foreach(Part child in part.children)
 			{
