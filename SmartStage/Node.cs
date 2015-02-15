@@ -159,16 +159,8 @@ namespace SmartStage
 			// Rule 7
 			if (part.fuelCrossFeed)
 			{
-				foreach (AttachNode i in part.attachNodes)
-				{
-					if (i != null && i.attachedPart != null &&
-						i.attachedPart == part.parent &&
-						i.nodeType == AttachNode.NodeType.Surface &&
-						availableNodes.ContainsKey(i.attachedPart))
-					{
-						return availableNodes[i.attachedPart].GetTanks(propellantId, availableNodes, visitedTanks);
-					}
-				}
+				if (part.attachMode == AttachModes.SRF_ATTACH && part.parent != null && availableNodes.ContainsKey(part.parent))
+					return availableNodes[part.parent].GetTanks(propellantId, availableNodes, visitedTanks);
 			}
 
 			// Rule 8
