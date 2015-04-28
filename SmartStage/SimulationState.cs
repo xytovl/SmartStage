@@ -82,8 +82,8 @@ namespace SmartStage
 					activeParts.Add(node.part);
 				}
 			}
-			minThrust = activeEngines.Sum(e => e.thrust(0));
-			maxThrust = activeEngines.Sum(e => e.thrust(1));
+			minThrust = activeEngines.Sum(e => e.thrust(0, pressure, machNumber));
+			maxThrust = activeEngines.Sum(e => e.thrust(1, pressure, machNumber));
 			return activeParts;
 		}
 		public double r { get { return Math.Sqrt(x * x + y * y);}}
@@ -96,6 +96,11 @@ namespace SmartStage
 		public double v_surf_x { get { return vx - u_y * (planet.rotates ? (2 * Math.PI * r / planet.rotationPeriod) : 0);}}
 		public double v_surf_y { get { return vy + u_x * (planet.rotates ? (2 * Math.PI * r / planet.rotationPeriod) : 0);}}
 
+		public float pressure { get { return (float)FlightGlobals.getStaticPressure(r - planet.Radius, planet);}}
+
+		//FIXME: implement
+		public float machNumber { get { return 1;}}
+
 		public DState derivate()
 		{
 			DState res = new DState();
@@ -104,7 +109,6 @@ namespace SmartStage
 
 			double r = this.r;
 			float altitude = (float) (r - planet.Radius);
-			float pressure = (float)FlightGlobals.getStaticPressure(altitude, planet);
 
 			double theta = Math.Atan2(u_x, u_y);
 			double thrustDirection = theta + ascentPath.FlightPathAngle(altitude);
@@ -113,10 +117,10 @@ namespace SmartStage
 			double grav_acc = -planet.gravParameter / (r * r);
 
 			// drag
-			double rho = FlightGlobals.getAtmDensity(pressure);
+			// FIXME: implement 1.0 drag model
 			double v_surf2 = v_surf_x * v_surf_x + v_surf_y * v_surf_y;
 			double v_surf = Math.Sqrt(v_surf2);
-			double drag_acc = -0.5 * rho * v_surf2 * Cx * FlightGlobals.DragMultiplier;
+			double drag_acc = 0;
 
 			double desiredThrust = double.MaxValue;
 
@@ -147,10 +151,10 @@ namespace SmartStage
 			throttle = Math.Max(0, Math.Min(1, throttle));
 
 			// Effective thrust
-			double F = activeEngines.Sum(e => e.thrust(throttle));
+			double F = activeEngines.Sum(e => e.thrust(throttle, pressure, machNumber));
 
 			// Propellant mass variation
-			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(pressure, throttle));
+			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(pressure, machNumber, throttle));
 
 			res.ax_nograv = F / m * Math.Sin(thrustDirection);
 			res.ay_nograv = F / m * Math.Cos(thrustDirection);

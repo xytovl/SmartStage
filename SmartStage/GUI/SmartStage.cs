@@ -63,6 +63,9 @@ namespace SmartStage
 
 		public void OnGUI()
 		{
+			// Disable window display until advanced simulation is migrated to 1.0
+			showWindow = false;
+
 			lockEditor = ComboBox.DrawGUI();
 
 			if (showWindow)

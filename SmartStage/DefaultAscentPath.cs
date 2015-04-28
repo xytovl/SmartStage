@@ -15,7 +15,7 @@ namespace SmartStage
 		{
 			get
 			{
-				return planet.atmosphere ? planet.maxAtmosphereAltitude * autoTurnPerc : 25;
+				return planet.atmosphere ? planet.atmosphereDepth * autoTurnPerc : 25;
 			}
 		}
 
@@ -23,7 +23,7 @@ namespace SmartStage
 		{
 			get
 			{
-				return planet.atmosphere ? planet.maxAtmosphereAltitude : 30000;
+				return planet.atmosphere ? planet.atmosphereDepth : 30000;
 			}
 		}
 

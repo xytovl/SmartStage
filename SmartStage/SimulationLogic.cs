@@ -96,16 +96,15 @@ namespace SmartStage
 				{
 					state.m = state.availableNodes.Sum(p => p.Value.mass);
 					state.Cx = state.availableNodes.Sum(p => p.Value.mass * p.Value.part.maximum_drag) / state.m;
-					float altitude = (float) (state.r - state.planet.Radius);
 					// Compute flow for active engines
 					foreach (EngineWrapper e in state.activeEngines)
-						e.evaluateFuelFlow(state.planet.pressureCurve.Evaluate(altitude), state.throttle, false);
+						e.evaluateFuelFlow(state.pressure, state.machNumber, state.throttle, false);
 				}
 				else
 				{
 					// Compute flow for active engines, in vacuum
 					foreach (EngineWrapper e in state.activeEngines)
-						e.evaluateFuelFlow(0, 1, false);
+						e.evaluateFuelFlow(0, 1, 1, false);
 				}
 
 				double step = Math.Max(state.availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
