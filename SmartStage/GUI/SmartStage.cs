@@ -25,6 +25,25 @@ namespace SmartStage
 		public static EditableDouble terminalVelocityCorrectionFactor = new EditableDouble(5);
 		private static bool advancedSimulation = false;
 
+		private static bool _autoUpdateStaging = false;
+		private static bool autoUpdateStaging
+		{
+			get
+			{
+				return _autoUpdateStaging;
+			}
+			set
+			{
+				if (value == autoUpdateStaging)
+					return;
+				_autoUpdateStaging = value;
+				stageButton?.SetTexture(texture);
+			}
+		}
+		readonly static Texture2D activeTexture = GameDatabase.Instance.GetTexture("SmartStage/SmartStage38-active", false);
+		readonly static Texture2D inactiveTexture = GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false);
+		static Texture2D texture { get { return autoUpdateStaging ? activeTexture : inactiveTexture;}}
+
 		public SmartStage()
 		{
 			GameEvents.onGUIApplicationLauncherReady.Add(addButton);
@@ -37,19 +56,21 @@ namespace SmartStage
 		{
 			plot = null;
 			removeButton();
+			GameEvents.onEditorShipModified.Add(onEditorShipModified);
 
 			stageButton = ApplicationLauncher.Instance.AddModApplication(
 				computeStages, computeStages,
 				() => showWindow = true, null,
 				null, null,
 				ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
-				GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false));
+				texture);
 		}
 
 		private void removeButton()
 		{
 			if (stageButton != null)
 				ApplicationLauncher.Instance.RemoveModApplication(stageButton);
+			GameEvents.onEditorShipModified.Remove(onEditorShipModified);
 		}
 
 		public static void computeStages()
@@ -58,13 +79,10 @@ namespace SmartStage
 			ship.computeStages();
 			if (advancedSimulation)
 				plot = new AscentPlot(ship.samples, ship.stages, 400, 400);
-			showWindow = true;
 		}
 
 		public void OnGUI()
 		{
-			// Disable window display until advanced simulation is migrated to 1.0
-			showWindow = false;
 
 			lockEditor = ComboBox.DrawGUI();
 
@@ -94,6 +112,9 @@ namespace SmartStage
 		{
 			bool draggable = true;
 			GUILayout.BeginVertical();
+			autoUpdateStaging = GUILayout.Toggle(autoUpdateStaging, "Automatically recompute staging");
+
+			#if advancedsimulation
 			bool newAdvancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
 			if (!newAdvancedSimulation && advancedSimulation)
 			{
@@ -126,10 +147,22 @@ namespace SmartStage
 				if (oldId != planetId)
 					computeStages();
 			}
+			#endif
 			GUILayout.EndVertical();
 			if (draggable)
 				GUI.DragWindow();
 		}
+
+	private void onEditorShipModified(ShipConstruct v)
+	{
+		if (!autoUpdateStaging)
+			return;
+		try
+		{
+			computeStages();
+		}
+		catch (Exception) {}
+	}
 
 	}
 }
