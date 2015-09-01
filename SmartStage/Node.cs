@@ -19,10 +19,12 @@ namespace SmartStage
 		private List<Part> raycastHit = new List<Part>();
 
 		private double baseMass;
+		public readonly bool isSepratron;
 
-		public Node(Part part)
+		public Node(Part part, Vector3d forward)
 		{
 			this.part = part;
+			isSepratron = IsSepratron(forward);
 			resourceMass = part.Resources.list.ToDictionary(x => x.info.id, x => x.enabled ? x.info.density * x.amount * 1000 : 0);
 			resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
 			if (part.physicalSignificance != Part.PhysicalSignificance.NONE && part.PhysicsSignificance != 1)
@@ -78,7 +80,7 @@ namespace SmartStage
 				&& (PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.STACK_PRIORITY_SEARCH
 					|| PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.NO_FLOW)
 			)
-				&& ! isSepratron(part))
+				&& ! isSepratron)
 				return true;
 			return part.children.Any(child => availableNodes.ContainsKey(child) && availableNodes[child].hasFuelInChildren(availableNodes));
 		}
@@ -199,7 +201,7 @@ namespace SmartStage
 		}
 
 		// Let's say a sepratron is an engine with more than 45° inclination
-		public static bool isSepratron(Part part)
+		bool IsSepratron(Vector3d forward)
 		{
 			if (part.Modules.OfType<ModuleEngines>().Count() == 0 && part.Modules.OfType<ModuleEnginesFX>().Count() == 0 )
 				return false;
@@ -219,7 +221,7 @@ namespace SmartStage
 					thrust -= t.forward;
 			}
 
-			return Vector3.Dot(Vector3d.up, thrust/numTransforms) <= 0.8;
+			return Vector3.Dot(forward, thrust/numTransforms) <= 0.8;
 		}
 	}
 }

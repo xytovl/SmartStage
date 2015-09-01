@@ -35,10 +35,12 @@ namespace SmartStage
 
 		public bool limitToTerminalVelocity;
 		public double maxAcceleration;
+		public Vector3d forward;
 
-		public SimulationState(CelestialBody planet, double departureAltitude)
+		public SimulationState(CelestialBody planet, double departureAltitude, Vector3d forward)
 		{
 			this.planet = planet;
+			this.forward = forward;
 
 			x = 0;
 			y = planet.Radius + departureAltitude;
@@ -75,7 +77,7 @@ namespace SmartStage
 			activeEngines.Clear();
 			foreach(Node node in availableNodes.Values)
 			{
-				if ((node.isActiveEngine(availableNodes) && ! Node.isSepratron(node.part)))
+				if ((node.isActiveEngine(availableNodes) && ! node.isSepratron))
 				{
 					activeEngines.AddRange(node.part.Modules.OfType<ModuleEngines>().Select(e => new EngineWrapper(e, availableNodes)));
 					activeEngines.AddRange(node.part.Modules.OfType<ModuleEnginesFX>().Select(e => new EngineWrapper(e, availableNodes)));

@@ -62,7 +62,8 @@ namespace SmartStage
 		public SimulationLogic(ShipConstruct stockShip, CelestialBody planet, double departureAltitude, bool limitToTerminalVelocity, double maxAcceleration, bool advancedSimulation)
 		{
 			this.advancedSimulation = advancedSimulation;
-			state = new SimulationState(planet, departureAltitude);
+			Vector3d forward = Vector3d.up;
+			state = new SimulationState(planet, departureAltitude, forward);
 			state.limitToTerminalVelocity = limitToTerminalVelocity;
 			state.maxAcceleration = maxAcceleration != 0 ? maxAcceleration : double.MaxValue;
 
@@ -73,7 +74,7 @@ namespace SmartStage
 				if (p.Modules.OfType<LaunchClamp>().Count() > 0)
 					stages[0].stageParts.Add(p);
 				else
-					state.availableNodes.Add(p, new Node(p));
+					state.availableNodes.Add(p, new Node(p, forward));
 			}
 			foreach (CompoundPart p in stockShip.parts.OfType<CompoundPart>())
 			{
