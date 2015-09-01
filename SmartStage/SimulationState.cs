@@ -136,7 +136,7 @@ namespace SmartStage
 				if (limitToTerminalVelocity && Math.Abs(Math.Cos(theta - thrustDirection)) > 1e-3 && drag_ratio >0.9)
 				{
 					desiredThrust = Math.Min(desiredThrust,
-						-2 /(SmartStage.terminalVelocityCorrectionFactor *(drag_ratio - 0.9)) * grav_acc * m / Math.Cos(theta - thrustDirection));
+						-2 /(5 *(drag_ratio - 0.9)) * grav_acc * m / Math.Cos(theta - thrustDirection));
 				}
 			}
 			else
