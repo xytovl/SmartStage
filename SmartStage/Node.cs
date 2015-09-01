@@ -74,27 +74,36 @@ namespace SmartStage
 		}
 
 		// Returns true if any of the descendant still in the shipParts dictionary has fuel and is not a sepratron
-		public bool hasFuelInChildren(Dictionary<Part,Node> availableNodes)
+		public bool hasFuelInChildren(Dictionary<Part,Node> availableNodes, HashSet<Part> visitedParts = null)
 		{
+			visitedParts = visitedParts ?? new HashSet<Part>();
+			if (!visitedParts.Add(part))
+				return false;
 			if (resourceMass.Any(massPair => massPair.Value > 0.1d
 				&& (PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.STACK_PRIORITY_SEARCH
 					|| PartResourceLibrary.Instance.GetDefinition(massPair.Key).resourceFlowMode == ResourceFlowMode.NO_FLOW)
 			)
 				&& ! isSepratron)
 				return true;
-			return part.children.Any(child => availableNodes.ContainsKey(child) && availableNodes[child].hasFuelInChildren(availableNodes));
+			return part.children.Any(child => availableNodes.ContainsKey(child) && availableNodes[child].hasFuelInChildren(availableNodes, visitedParts));
 		}
 
 		// Returns the list of descendants in the shipParts dictionary that should be activated when node is decoupled
-		public List<Part> getRelevantChildrenOnDecouple(Dictionary<Part,Node> availableNodes)
+		public List<Part> getRelevantChildrenOnDecouple(Dictionary<Part,Node> availableNodes, HashSet<Part> visitedParts = null)
 		{
 			List<Part> result = new List<Part>();
+
+			// break cycles
+			visitedParts = visitedParts ?? new HashSet<Part>();
+			if (!visitedParts.Add(part))
+				return result;
+
 			if (part.hasStagingIcon)
 				result.Add(part);
 			foreach(Part child in part.children)
 			{
 				if (availableNodes.ContainsKey(child))
-					result.AddRange(availableNodes[child].getRelevantChildrenOnDecouple(availableNodes));
+					result.AddRange(availableNodes[child].getRelevantChildrenOnDecouple(availableNodes, visitedParts));
 			}
 			return result;
 		}
