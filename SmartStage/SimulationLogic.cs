@@ -59,24 +59,23 @@ namespace SmartStage
 			return ds1;
 		}
 
-		public SimulationLogic(ShipConstruct stockShip, CelestialBody planet, double departureAltitude, bool limitToTerminalVelocity, double maxAcceleration, bool advancedSimulation)
+		public SimulationLogic(List<Part> parts, CelestialBody planet, double departureAltitude, bool limitToTerminalVelocity, double maxAcceleration, bool advancedSimulation, Vector3d forward)
 		{
 			this.advancedSimulation = advancedSimulation;
-			Vector3d forward = Vector3d.up;
 			state = new SimulationState(planet, departureAltitude, forward);
 			state.limitToTerminalVelocity = limitToTerminalVelocity;
 			state.maxAcceleration = maxAcceleration != 0 ? maxAcceleration : double.MaxValue;
 
 			//Initialize first stage with available engines and launch clamps
 			stages.Add(new StageDescription(0));
-			foreach (Part p in stockShip.parts)
+			foreach (Part p in parts)
 			{
 				if (p.Modules.OfType<LaunchClamp>().Count() > 0)
 					stages[0].stageParts.Add(p);
 				else
 					state.availableNodes.Add(p, new Node(p, forward));
 			}
-			foreach (CompoundPart p in stockShip.parts.OfType<CompoundPart>())
+			foreach (CompoundPart p in parts.OfType<CompoundPart>())
 			{
 				if (p.Modules.OfType<CompoundParts.CModuleFuelLine>().Count() > 0
 					&& state.availableNodes.ContainsKey(p.target))
@@ -229,6 +228,12 @@ namespace SmartStage
 				Debug.Log(result);
 			}
 			#endif
+		}
+
+		public static void inFlightComputeStages()
+		{
+			var vessel = FlightGlobals.ActiveVessel;
+			(new SimulationLogic(vessel.parts, FlightGlobals.currentMainBody, vessel.altitude, false, 0, false, vessel.upAxis)).computeStages();
 		}
 	}
 }

@@ -67,7 +67,14 @@ namespace SmartStage
 
 		public void ComputeStages()
 		{
-			SimulationLogic ship = new SimulationLogic(EditorLogic.fetch.ship, planetObjects[planetId], 68, limitToTerminalVelocity, maxAcceleration, advancedSimulation);
+			SimulationLogic ship = new SimulationLogic(
+				EditorLogic.fetch.ship.parts,
+				planetObjects[planetId],
+				68,
+				limitToTerminalVelocity,
+				maxAcceleration,
+				advancedSimulation,
+				Vector3d.up);
 			ship.computeStages();
 			if (advancedSimulation)
 				plot = new AscentPlot(ship.samples, ship.stages, 400, 400);

@@ -7,7 +7,7 @@ namespace SmartStage
 		// Compatibility with autoasparagus, using reflection
 		public static void computeStages()
 		{
-			(new SimulationLogic(EditorLogic.fetch.ship, Planetarium.fetch.Home, 68, false, 0, false)).computeStages();
+			(new SimulationLogic(EditorLogic.fetch.ship.parts, Planetarium.fetch.Home, 68, false, 0, false, Vector3d.up)).computeStages();
 		}
 	}
 }

@@ -3,15 +3,17 @@ using UnityEngine;
 
 namespace SmartStage
 {
-	[KSPAddon(KSPAddon.Startup.EditorVAB, false)]
+	[KSPAddon(KSPAddon.Startup.MainMenu, true)]
 	public class Plugin : MonoBehaviour
 	{
 		public enum state {inactive, active}
 
-		ApplicationLauncherButton stageButton;
+		ApplicationLauncherButton vabButton;
+		ApplicationLauncherButton flightButton;
 		readonly Texture2D[] textures;
+		GameScenes currentScene;
 
-		state _state;
+		state _state = state.inactive;
 		public state State
 		{
 			get { return _state;}
@@ -20,7 +22,8 @@ namespace SmartStage
 				if (value == _state)
 					return;
 				_state = value;
-				stageButton?.SetTexture(Texture);
+				vabButton?.SetTexture(Texture);
+				flightButton?.SetTexture(Texture);
 			}
 		}
 		Texture2D Texture { get { return textures[(int)_state];}}
@@ -33,31 +36,63 @@ namespace SmartStage
 				GameDatabase.Instance.GetTexture("SmartStage/SmartStage38", false),
 				GameDatabase.Instance.GetTexture("SmartStage/SmartStage38-active", false)
 			};
-			gui = new MainWindow(this);
+		}
+
+		public void Start()
+		{
 			GameEvents.onGUIApplicationLauncherReady.Add(AddButton);
 			GameEvents.onGUIApplicationLauncherDestroyed.Add(RemoveButton);
 			GameEvents.onEditorShipModified.Add(onEditorShipModified);
+			GameEvents.onLevelWasLoaded.Add(sceneChanged);
 			AddButton();
+			DontDestroyOnLoad(this);
 		}
 
 		void AddButton()
 		{
-			if (stageButton != null || ! ApplicationLauncher.Ready)
+			if (vabButton != null || ! ApplicationLauncher.Ready)
 				return;
 
-			stageButton = ApplicationLauncher.Instance.AddModApplication(
+			vabButton = ApplicationLauncher.Instance.AddModApplication(
 				() => gui.ShowWindow = true, () => gui.ShowWindow = false,
 				null, null,
 				null, null,
 				ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
 				Texture);
+
+			flightButton = ApplicationLauncher.Instance.AddModApplication(
+				SimulationLogic.inFlightComputeStages, SimulationLogic.inFlightComputeStages,
+				null, null,
+				null, null,
+				ApplicationLauncher.AppScenes.FLIGHT,
+				Texture);
 		}
 
 		void RemoveButton()
 		{
-			if (stageButton != null)
-				ApplicationLauncher.Instance.RemoveModApplication(stageButton);
-			stageButton = null;
+			if (flightButton != null)
+				ApplicationLauncher.Instance.RemoveModApplication(flightButton);
+			flightButton = null;
+			if (vabButton != null)
+				ApplicationLauncher.Instance.RemoveModApplication(vabButton);
+			vabButton = null;
+		}
+
+		private void sceneChanged(GameScenes scene)
+		{
+			if (currentScene == GameScenes.EDITOR)
+			{
+				gui.Save();
+				gui.Dispose();
+				gui = null;
+			}
+
+			currentScene = scene;
+
+			if (currentScene == GameScenes.EDITOR)
+				gui = new MainWindow(this);
+			else
+				State = state.inactive;
 		}
 
 		public void OnDestroy()
@@ -72,12 +107,13 @@ namespace SmartStage
 
 		public void OnGUI()
 		{
-			gui.OnGUI();
+			if (currentScene == GameScenes.EDITOR)
+				gui?.OnGUI();
 		}
 
 		void onEditorShipModified(ShipConstruct ship)
 		{
-			gui.onEditorShipModified(ship);
+			gui?.onEditorShipModified(ship);
 		}
 	}
 }
