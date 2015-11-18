@@ -1,18 +1,18 @@
 {
     "NAME":"SmartStage",
     "URL":"https://raw.githubusercontent.com/xytovl/SmartStage/master/SmartStage.version",
-    "DOWNLOAD":"https://github.com/xytovl/SmartStage/releases/download/v2.7.0/SmartStage-2.7.0.zip",
+    "DOWNLOAD":"https://github.com/xytovl/SmartStage/releases/download/v2.7.1/SmartStage-2.7.1.zip",
     "VERSION":
     {
         "MAJOR":2,
         "MINOR":7,
-        "PATCH":0,
+        "PATCH":1,
         "BUILD":0
     },
     "KSP_VERSION":
     {
         "MAJOR":1,
         "MINOR":0,
-        "PATCH":4
+        "PATCH":5
     }
 }
