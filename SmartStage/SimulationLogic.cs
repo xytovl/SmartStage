@@ -165,19 +165,22 @@ namespace SmartStage
 				}
 
 				if (newStage.stageParts.Count > 0)
-					stages.Add(newStage);
-				List<Part> activableChildren = new List<Part>();
-
-				// Remove all decoupled elements, fire sepratrons and parachutes
-				foreach(Part part in newStage.stageParts)
 				{
-					if (state.availableNodes.ContainsKey(part))
+					stages.Add(newStage);
+					List<Part> activableChildren = new List<Part>();
+
+					// Remove all decoupled elements, fire sepratrons and parachutes
+					foreach (Part part in newStage.stageParts)
 					{
-						activableChildren.AddRange(state.availableNodes[part].getRelevantChildrenOnDecouple(state.availableNodes));
-						dropPartAndChildren(part);
+						if (state.availableNodes.ContainsKey(part))
+						{
+							activableChildren.AddRange(state.availableNodes[part].getRelevantChildrenOnDecouple(state.availableNodes));
+							dropPartAndChildren(part);
+						}
 					}
+					newStage.stageParts.AddRange(activableChildren);
 				}
-				newStage.stageParts.AddRange(activableChildren);
+
 				// Update available engines and fuel flow
 				List<Part> activeEngines = state.updateEngines();
 
@@ -192,6 +195,27 @@ namespace SmartStage
 				foreach (var part in stage.stageParts)
 					state.availableNodes.Remove(part);
 			}
+
+			// Put fairings in a separate stage before decoupling
+			List<StageDescription> newStages = new List<StageDescription>();
+			for (int i = 0; i < stages.Count; i++)
+			{
+				var fairings = stages[i].stageParts.Where(p => p.Modules.OfType<ModuleProceduralFairing>().Count() != 0);
+				var notfairings = stages[i].stageParts.Where(p => p.Modules.OfType<ModuleProceduralFairing>().Count() == 0);
+
+				if (fairings.Count() != 0)
+				{
+					StageDescription fairingStage = new StageDescription(stages[i].activationTime);
+					fairingStage.stageParts.AddRange(fairings);
+					newStages.Add(fairingStage);
+				}
+
+				StageDescription notfairingStage = new StageDescription(stages[i].activationTime);
+				notfairingStage.stageParts.AddRange(notfairings);
+				newStages.Add(notfairingStage);
+			}
+			stages = newStages;
+
 			int initialStage = 0;
 			foreach (Part part in state.availableNodes.Keys)
 			{
@@ -204,12 +228,12 @@ namespace SmartStage
 
 			// Set stage number correctly
 			Staging.SetStageCount(stages.Count);
-			for (int stage = 0 ; stage < stages.Count; stage++)
+			for (int stage = stages.Count - 1 ; stage >= 0; stage--)
 			{
-				var currentStage = stages[stages.Count - stage - 1];
+				var currentStage = stages[stage];
 				foreach(Part part in currentStage.stageParts)
 				{
-					part.inverseStage = stage + initialStage;
+					part.inverseStage = stages.Count - 1 - stage + initialStage;
 				}
 			}
 
