@@ -80,7 +80,6 @@ namespace SmartStage
 				if ((node.isActiveEngine(availableNodes) && ! node.isSepratron))
 				{
 					activeEngines.AddRange(node.part.Modules.OfType<ModuleEngines>().Select(e => new EngineWrapper(e, availableNodes)));
-					activeEngines.AddRange(node.part.Modules.OfType<ModuleEnginesFX>().Select(e => new EngineWrapper(e, availableNodes)));
 					activeParts.Add(node.part);
 				}
 			}
