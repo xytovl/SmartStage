@@ -59,11 +59,10 @@ namespace SmartStage
 			return ds1;
 		}
 
-		public SimulationLogic(List<Part> parts, CelestialBody planet, double departureAltitude, bool limitToTerminalVelocity, double maxAcceleration, bool advancedSimulation, Vector3d forward)
+		public SimulationLogic(List<Part> parts, CelestialBody planet, double departureAltitude, double maxAcceleration, bool advancedSimulation, Vector3d forward)
 		{
 			this.advancedSimulation = advancedSimulation;
 			state = new SimulationState(planet, departureAltitude, forward);
-			state.limitToTerminalVelocity = limitToTerminalVelocity;
 			state.maxAcceleration = maxAcceleration != 0 ? maxAcceleration : double.MaxValue;
 
 			//Initialize first stage with available engines and launch clamps
@@ -95,16 +94,15 @@ namespace SmartStage
 				if (advancedSimulation)
 				{
 					state.m = state.availableNodes.Sum(p => p.Value.mass);
-					state.Cx = state.availableNodes.Sum(p => p.Value.mass * p.Value.part.maximum_drag) / state.m;
 					// Compute flow for active engines
 					foreach (EngineWrapper e in state.activeEngines)
-						e.evaluateFuelFlow(state.pressure, state.machNumber, state.throttle, false);
+						e.evaluateFuelFlow(state.atmDensity, state.machNumber, state.throttle, false);
 				}
 				else
 				{
 					// Compute flow for active engines, in vacuum
 					foreach (EngineWrapper e in state.activeEngines)
-						e.evaluateFuelFlow(0, 1, 1, false);
+						e.evaluateFuelFlow(1, 1, 1, false);
 				}
 
 				double step = Math.Max(state.availableNodes.Min(node => node.Value.getNextEvent()), 1E-100);
@@ -132,7 +130,7 @@ namespace SmartStage
 					}
 					Sample sample;
 					sample.time = elapsedTime + step;
-					sample.velocity = Math.Sqrt(state.v_surf_x * state.v_surf_x + state.v_surf_y * state.v_surf_y) ;
+					sample.velocity = state.v_surf;
 					sample.altitude = state.r - state.planet.Radius;
 					sample.mass = state.m;
 					sample.acceleration = Math.Sqrt(dState.ax_nograv * dState.ax_nograv + dState.ay_nograv * dState.ay_nograv);
@@ -257,7 +255,7 @@ namespace SmartStage
 		public static void inFlightComputeStages()
 		{
 			var vessel = FlightGlobals.ActiveVessel;
-			(new SimulationLogic(vessel.parts, FlightGlobals.currentMainBody, vessel.altitude, false, 0, false, vessel.upAxis)).computeStages();
+			(new SimulationLogic(vessel.parts, FlightGlobals.currentMainBody, vessel.altitude, 0, false, vessel.upAxis)).computeStages();
 		}
 	}
 }

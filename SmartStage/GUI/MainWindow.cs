@@ -18,7 +18,6 @@ namespace SmartStage
 		CelestialBody[] planetObjects = FlightGlobals.Bodies.ToArray();
 		string[] planets = FlightGlobals.Bodies.ConvertAll(b => b.GetName()).ToArray();
 		int planetId;
-		bool limitToTerminalVelocity = true;
 		EditableDouble maxAcceleration = new EditableDouble(0);
 
 		bool _autoUpdateStaging = false;
@@ -71,7 +70,6 @@ namespace SmartStage
 				EditorLogic.fetch.ship.parts,
 				planetObjects[planetId],
 				68,
-				limitToTerminalVelocity,
 				maxAcceleration,
 				advancedSimulation,
 				Vector3d.up);
@@ -114,7 +112,6 @@ namespace SmartStage
 				ComputeStages();
 			autoUpdateStaging = GUILayout.Toggle(autoUpdateStaging, "Automatically recompute staging");
 
-			#if advancedsimulation
 			bool newAdvancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
 			if (!newAdvancedSimulation && advancedSimulation)
 			{
@@ -127,8 +124,6 @@ namespace SmartStage
 				int oldId = planetId;
 				planetId = ComboBox.Box(planetId, planets, planets);
 
-				limitToTerminalVelocity = GUILayout.Toggle(limitToTerminalVelocity, "Limit to terminal velocity");
-
 				GUILayout.BeginHorizontal();
 				GUILayout.Label("Max acceleration: ");
 				maxAcceleration.text = GUILayout.TextField(maxAcceleration.text);
@@ -138,9 +133,8 @@ namespace SmartStage
 					draggable &= plot.draw();
 
 				if (oldId != planetId)
-					computeStages();
+					ComputeStages();
 			}
-			#endif
 			GUILayout.EndVertical();
 			if (draggable)
 				GUI.DragWindow();

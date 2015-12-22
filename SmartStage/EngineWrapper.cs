@@ -18,14 +18,13 @@ namespace SmartStage
 			updateTanks(availableNodes);
 		}
 
-		private float flowMultiplier(float pressure, float machNumber)
+		private float flowMultiplier(float atmDensity, float machNumber)
 		{
 			float res = 1;
 			if (engine.atmChangeFlow)
 			{
-				// res = tmDensity / 1.225
 				if (engine.useAtmCurve)
-					res = engine.atmCurve.Evaluate(pressure);
+					res = engine.atmCurve.Evaluate(atmDensity * 0.816326530612245f);
 			}
 			if (engine.useVelCurve)
 				res *= engine.velCurve.Evaluate(machNumber);
@@ -33,7 +32,7 @@ namespace SmartStage
 			return Math.Max(res, engine.CLAMP);
 		}
 
-		public double evaluateFuelFlow(float pressure, float machNumber, float throttle, bool simulate = true)
+		public double evaluateFuelFlow(float atmDensity, float machNumber, float throttle, bool simulate = true)
 		{
 			if (engine.throttleLocked)
 				throttle = 1;
@@ -43,7 +42,7 @@ namespace SmartStage
 			if (resources.All(pair => pair.Value.Count > 0))
 			{
 				double ratioSum = resources.Sum(pair => pair.Key.ratio);
-				flow = Mathf.Lerp(engine.minFuelFlow, engine.maxFuelFlow, throttle * engine.thrustPercentage / 100) * flowMultiplier(pressure, machNumber);
+				flow = 1000 * Mathf.Lerp(engine.minFuelFlow, engine.maxFuelFlow, throttle * engine.thrustPercentage / 100) * flowMultiplier(atmDensity, machNumber);
 
 				if (! simulate)
 				{
@@ -67,11 +66,11 @@ namespace SmartStage
 					prop => availableNodes[part].GetTanks(prop.id, availableNodes, new HashSet<Part>()));
 		}
 
-		public float thrust(float throttle, float pressure, float machNumber)
+		public float thrust(float throttle, float pressurekPa, float machNumber, float atmDensity)
 		{
-			double fuelFlow = evaluateFuelFlow(pressure, machNumber, throttle);
-			float isp = engine.atmosphereCurve.Evaluate(pressure);
-			return (float)(1000 * fuelFlow * isp * 9.82);
+			double fuelFlow = evaluateFuelFlow(atmDensity, machNumber, throttle);
+			float isp = engine.atmosphereCurve.Evaluate(pressurekPa / (float)FlightGlobals.GetHomeBody().GetPressure(0));
+			return (float)(fuelFlow * isp * 9.82);
 		}
 	}
 }

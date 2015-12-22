@@ -29,11 +29,9 @@ namespace SmartStage
 		public float throttle;
 		public List<EngineWrapper> activeEngines;
 		public Dictionary<Part,Node> availableNodes;
-		public double Cx;
 		public CelestialBody planet;
 		private DefaultAscentPath ascentPath;
 
-		public bool limitToTerminalVelocity;
 		public double maxAcceleration;
 		public Vector3d forward;
 
@@ -83,8 +81,8 @@ namespace SmartStage
 					activeParts.Add(node.part);
 				}
 			}
-			minThrust = activeEngines.Sum(e => e.thrust(0, pressure, machNumber));
-			maxThrust = activeEngines.Sum(e => e.thrust(1, pressure, machNumber));
+			minThrust = activeEngines.Sum(e => e.thrust(0, pressure, machNumber, atmDensity));
+			maxThrust = activeEngines.Sum(e => e.thrust(1, pressure, machNumber, atmDensity));
 			return activeParts;
 		}
 		public double r { get { return Math.Sqrt(x * x + y * y);}}
@@ -97,10 +95,17 @@ namespace SmartStage
 		public double v_surf_x { get { return vx - u_y * (planet.rotates ? (2 * Math.PI * r / planet.rotationPeriod) : 0);}}
 		public double v_surf_y { get { return vy + u_x * (planet.rotates ? (2 * Math.PI * r / planet.rotationPeriod) : 0);}}
 
+		public double v_surf { get { return Math.Sqrt(v_surf_x * v_surf_x + v_surf_y * v_surf_y);}}
+
 		public float pressure { get { return (float)FlightGlobals.getStaticPressure(r - planet.Radius, planet);}}
 
-		//FIXME: implement
-		public float machNumber { get { return 1;}}
+		public float machNumber { get {
+				double soundSpeed = planet.GetSpeedOfSound(pressure, atmDensity);
+				double mach = v_surf / soundSpeed;
+				if (mach > 25.0) { mach = 25.0; }
+				return (float)mach;}}
+
+		public float atmDensity { get { return (float)StockAeroUtil.GetDensity(r - planet.Radius, planet);}}
 
 		public DState derivate()
 		{
@@ -118,33 +123,11 @@ namespace SmartStage
 			double grav_acc = -planet.gravParameter / (r * r);
 
 			// drag
-			// FIXME: implement 1.0 drag model
-			double v_surf2 = v_surf_x * v_surf_x + v_surf_y * v_surf_y;
-			double v_surf = Math.Sqrt(v_surf2);
-			double drag_acc = 0;
+			var dragForce = StockAeroUtil.SimAeroForce(availableNodes.Keys.ToList(), planet, new UnityEngine.Vector3(0,(float)v_surf, 0), altitude);
+			double drag_acc = dragForce.magnitude / m;
 
-			double desiredThrust = double.MaxValue;
-
-			if (v_surf > 0)
-			{
-				// Projection of acceleration components on vessel forward direction
-				double proj = (drag_acc * v_surf_x / v_surf) * Math.Sin(thrustDirection)
-					+ (drag_acc * v_surf_y / v_surf) * Math.Cos(thrustDirection);
-				// Just ignore orthogonal components for acceleration limitation
-				desiredThrust = Math.Min(desiredThrust, (maxAcceleration - proj) * m);
-				// Optimal ascent has the vertical component of drag equal to gravity
-				double drag_ratio = Math.Abs(drag_acc * (v_surf_x * u_x + v_surf_y * u_y) / (grav_acc * v_surf));
-				if (limitToTerminalVelocity && Math.Abs(Math.Cos(theta - thrustDirection)) > 1e-3 && drag_ratio >0.9)
-				{
-					desiredThrust = Math.Min(desiredThrust,
-						-2 /(5 *(drag_ratio - 0.9)) * grav_acc * m / Math.Cos(theta - thrustDirection));
-				}
-			}
-			else
-			{
-				desiredThrust = Math.Min(desiredThrust, maxAcceleration * m);
-			}
-
+			//throttle
+			double desiredThrust = maxAcceleration * m;
 			if (maxThrust != minThrust)
 				throttle = ((float)desiredThrust - minThrust) / (maxThrust - minThrust);
 			else
@@ -152,17 +135,17 @@ namespace SmartStage
 			throttle = Math.Max(0, Math.Min(1, throttle));
 
 			// Effective thrust
-			double F = activeEngines.Sum(e => e.thrust(throttle, pressure, machNumber));
+			double F = activeEngines.Sum(e => e.thrust(throttle, pressure, machNumber, atmDensity));
 
 			// Propellant mass variation
-			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(pressure, machNumber, throttle));
+			res.dm = - activeEngines.Sum(e => e.evaluateFuelFlow(atmDensity, machNumber, throttle));
 
 			res.ax_nograv = F / m * Math.Sin(thrustDirection);
 			res.ay_nograv = F / m * Math.Cos(thrustDirection);
 			if (v_surf != 0)
 			{
-				res.ax_nograv += drag_acc * v_surf_x/v_surf;
-				res.ay_nograv += drag_acc * v_surf_y/v_surf;
+				res.ax_nograv -= drag_acc * v_surf_x/v_surf;
+				res.ay_nograv -= drag_acc * v_surf_y/v_surf;
 			}
 			res.ax = res.ax_nograv + grav_acc * u_x;
 			res.ay = res.ay_nograv + grav_acc * u_y;
