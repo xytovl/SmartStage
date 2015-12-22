@@ -19,7 +19,7 @@ VERSION_PATCH := 1
 VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
 
 ifeq ($(debug),1)
-	DEBUG = -debug
+	DEBUG = -debug -define:DEBUG
 endif
 
 all: build/SmartStage.dll
