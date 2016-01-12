@@ -151,24 +151,24 @@ namespace SmartStage
 					continue;
 
 				// Add all decouplers in a new stage
-				StageDescription newStage = new StageDescription(elapsedTime);
+				StageDescription dpStage = new StageDescription(elapsedTime);
 				foreach (Node node in state.availableNodes.Values)
 				{
 					ModuleDecouple decoupler = node.part.Modules.OfType<ModuleDecouple>().FirstOrDefault();
 					ModuleAnchoredDecoupler aDecoupler= node.part.Modules.OfType<ModuleAnchoredDecoupler>().FirstOrDefault();
 					if ((decoupler != null || aDecoupler != null)&& !node.hasFuelInChildren(state.availableNodes))
 					{
-						newStage.stageParts.Add(node.part);
+						dpStage.stageParts.Add(node.part);
 					}
 				}
 
-				if (newStage.stageParts.Count > 0)
+				if (dpStage.stageParts.Count > 0)
 				{
-					stages.Add(newStage);
+					stages.Add(dpStage);
 					List<Part> activableChildren = new List<Part>();
 
 					// Remove all decoupled elements, fire sepratrons and parachutes
-					foreach (Part part in newStage.stageParts)
+					foreach (Part part in dpStage.stageParts)
 					{
 						if (state.availableNodes.ContainsKey(part))
 						{
@@ -176,15 +176,15 @@ namespace SmartStage
 							dropPartAndChildren(part);
 						}
 					}
-					newStage.stageParts.AddRange(activableChildren);
+					dpStage.stageParts.AddRange(activableChildren);
 				}
 
 				// Update available engines and fuel flow
 				List<Part> activeEngines = state.updateEngines();
 
-				if (newStage.stageParts.Count > 0)
-					newStage.stageParts.AddRange(activeEngines);
-
+				StageDescription newStage = new StageDescription(elapsedTime);
+				newStage.stageParts.AddRange(activeEngines);
+				stages.Add (newStage);
 			}
 
 			// Put all remaining items (parachutes?) in a separate 0 stage
