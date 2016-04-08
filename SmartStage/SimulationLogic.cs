@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using KSP.UI.Screens;
 
 namespace SmartStage
 {
@@ -224,8 +225,10 @@ namespace SmartStage
 				}
 			}
 
+			// doesn't seem to work in 1.1
 			// Set stage number correctly
-			Staging.SetStageCount(stages.Count);
+			//StageManager.SetStageCount (stages.Count);
+
 			for (int stage = stages.Count - 1 ; stage >= 0; stage--)
 			{
 				var currentStage = stages[stage];
@@ -235,7 +238,8 @@ namespace SmartStage
 				}
 			}
 
-			Staging.SortIcons();
+			// doesn't seem to work in 1.1
+			//StageManager.Instance.SortIcons (true);
 
 			#if DEBUG
 			var compTime = DateTime.Now - startTime;
