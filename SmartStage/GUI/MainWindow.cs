@@ -108,9 +108,19 @@ namespace SmartStage
 		{
 			bool draggable = true;
 			GUILayout.BeginVertical();
-			if (GUILayout.Button("Compute stages"))
-				ComputeStages();
-			autoUpdateStaging = GUILayout.Toggle(autoUpdateStaging, "Automatically recompute staging");
+			if (GUILayout.Button ("Compute stages")) {
+				ComputeStages ();
+
+				// reload the ship
+				EditorLogic editor = EditorLogic.fetch;
+				ConfigNode shipCfg = editor.ship.SaveShip ();
+
+				string filename = "saves/" + HighLogic.SaveFolder + "/Ships/VAB/SmartStage.craft.hidden";
+				shipCfg.Save (filename);
+				EditorLogic.LoadShipFromFile (filename);
+				EditorLogic.fetch.SetBackup ();
+			}
+			//autoUpdateStaging = GUILayout.Toggle(autoUpdateStaging, "Automatically recompute staging");
 
 			bool newAdvancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
 			if (!newAdvancedSimulation && advancedSimulation)
