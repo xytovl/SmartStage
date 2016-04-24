@@ -46,6 +46,12 @@ namespace SmartStage
 					autoUpdateStaging = settings.GetValue("autoUpdateStaging") == Boolean.TrueString;
 				}
 				catch (Exception) {}
+				try
+				{
+					var settings = ConfigNode.Load(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
+					plugin.showInFlight = settings.GetValue("showInFlight") == Boolean.TrueString;
+				}
+				catch (Exception) {}
 			}
 			planetId = Array.IndexOf(planetObjects, Planetarium.fetch.Home);
 			// Position will be computed dynamically to be on screen
@@ -56,6 +62,7 @@ namespace SmartStage
 		{
 			ConfigNode settings = new ConfigNode("SmartStage");
 			settings.AddValue("autoUpdateStaging", autoUpdateStaging);
+			settings.AddValue("showInFlight", plugin.showInFlight);
 			settings.Save(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
 		}
 
@@ -131,6 +138,7 @@ namespace SmartStage
 				if (oldId != planetId)
 					ComputeStages();
 			}
+			plugin.showInFlight = GUILayout.Toggle(plugin.showInFlight, "Show icon in flight");
 			GUILayout.EndVertical();
 			if (draggable)
 				GUI.DragWindow();

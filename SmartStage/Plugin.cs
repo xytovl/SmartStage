@@ -29,6 +29,18 @@ namespace SmartStage
 		}
 		Texture2D Texture { get { return textures[(int)_state];}}
 
+		bool _showInFlight = false;
+		public bool showInFlight
+		{
+			get { return _showInFlight;}
+			set
+			{
+				if (value == _showInFlight)
+					return;
+				_showInFlight = value;
+			}
+		}
+
 		MainWindow gui;
 
 		public Plugin()
@@ -61,12 +73,15 @@ namespace SmartStage
 				ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
 				Texture);
 
-			flightButton = ApplicationLauncher.Instance.AddModApplication(
-				SimulationLogic.inFlightComputeStages, SimulationLogic.inFlightComputeStages,
-				null, null,
-				null, null,
-				ApplicationLauncher.AppScenes.FLIGHT,
-				Texture);
+			if (showInFlight)
+			{
+				flightButton = ApplicationLauncher.Instance.AddModApplication(
+					SimulationLogic.inFlightComputeStages, SimulationLogic.inFlightComputeStages,
+					null, null,
+					null, null,
+					ApplicationLauncher.AppScenes.FLIGHT,
+					Texture);
+			}
 		}
 
 		void RemoveButton()
