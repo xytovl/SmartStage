@@ -97,11 +97,7 @@ namespace SmartStage
 			if (lockEditor)
 				EditorLogic.fetch.Lock(true, true, true, "SmartStage");
 			else
-			{
 				EditorLogic.fetch.Unlock("SmartStage");
-				if (Event.current.type == EventType.mouseUp && Event.current.button == 0)
-					ShowWindow = false;
-			}
 		}
 
 		void drawWindow(int windowid)
