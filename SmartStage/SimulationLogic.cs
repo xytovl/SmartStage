@@ -187,13 +187,6 @@ namespace SmartStage
 
 			}
 
-			// Put all remaining items (parachutes?) in a separate 0 stage
-			foreach(var stage in stages)
-			{
-				foreach (var part in stage.stageParts)
-					state.availableNodes.Remove(part);
-			}
-
 			// Put fairings in a separate stage before decoupling
 			List<StageDescription> newStages = new List<StageDescription>();
 			for (int i = 0; i < stages.Count; i++)
@@ -213,6 +206,18 @@ namespace SmartStage
 				newStages.Add(notfairingStage);
 			}
 			stages = newStages;
+
+			// Put all remaining items (parachutes?) in a separate 0 stage
+			foreach(var stage in stages)
+			{
+				foreach (var part in stage.stageParts)
+					state.availableNodes.Remove(part);
+			}
+			var stage0 = new StageDescription(elapsedTime);
+			stage0.stageParts = state.availableNodes.Keys.Where(p => p.hasStagingIcon).ToList();
+			if (stage0.stageParts.Count != 0)
+				stages.Add(stage0);
+
 			stages.Reverse();
 			// This is ugly, but on KSP 1.1 I have not found anything better
 			// We call this private method for each part from the root, twice and it works...
