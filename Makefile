@@ -15,7 +15,7 @@ ZIP     := zip
 
 VERSION_MAJOR := 2
 VERSION_MINOR := 9
-VERSION_PATCH := 4
+VERSION_PATCH := 5
 
 VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
 
@@ -38,7 +38,7 @@ info:
 build/%.dll: ${SOURCEFILES}
 	mkdir -p build
 	${GMCS} -t:library -lib:${MANAGED} \
-		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine,KSPUtil,UnityEngine.UI \
+		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine,UnityEngine.UI \
 		${DEBUG} \
 		-out:$@ \
 		${SOURCEFILES}
