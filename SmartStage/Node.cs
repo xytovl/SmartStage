@@ -25,10 +25,10 @@ namespace SmartStage
 		{
 			this.part = part;
 			isSepratron = IsSepratron(forward);
-			resourceMass = part.Resources.list.ToDictionary(x => x.info.id, x => x.enabled ? x.info.density * x.amount * 1000 : 0);
-			resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
+			resourceMass = part.Resources.ToDictionary(x => x.info.id, x => x.info.density * x.amount * 1000);
+			resourceFlow = part.Resources.ToDictionary(x => x.info.id, x => 0d);
 			if (part.physicalSignificance != Part.PhysicalSignificance.NONE && part.PhysicsSignificance != 1)
-				baseMass = 1000 * part.mass + part.Resources.list.Sum(x => x.enabled ? 0 : x.info.density * x.amount * 1000);
+				baseMass = 1000 * part.mass;
 			else
 				baseMass = 0;
 
@@ -69,7 +69,7 @@ namespace SmartStage
 					depleted = true;
 				}
 			}
-			resourceFlow = part.Resources.list.ToDictionary(x => x.info.id, x => 0d);
+			resourceFlow = part.Resources.ToDictionary(x => x.info.id, x => 0d);
 			return depleted;
 		}
 

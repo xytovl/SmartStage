@@ -103,7 +103,7 @@ namespace SmartStage
 				Vector3 faceDirection = DragCubeList.GetFaceDirection((DragCube.DragFace)i);
 				float num2 = Vector3.Dot (direction, faceDirection);
 				float dotNormalized = (num2 + 1) * 0.5f;
-				float num3 = PhysicsGlobals.DragCurveValue (dotNormalized, machNumber);
+				float num3 = PhysicsGlobals.DragCurveValue(PhysicsGlobals.SurfaceCurves, dotNormalized, machNumber);
 				float num4 = this.areaOccluded [i] * num3;
 				float num5 = this.weightedDrag [i];
 				float num6 = num5;
