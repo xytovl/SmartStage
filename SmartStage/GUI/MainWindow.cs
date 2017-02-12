@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace SmartStage
@@ -20,55 +18,14 @@ namespace SmartStage
 		int planetId;
 		EditableDouble maxAcceleration = new EditableDouble(0);
 
-		bool _autoUpdateStaging = false;
-		bool autoUpdateStaging
-		{
-			get { return _autoUpdateStaging;}
-			set
-			{
-				if (value == _autoUpdateStaging)
-					return;
-				_autoUpdateStaging = value;
-				plugin.State = value ? Plugin.state.active : Plugin.state.inactive;
-			}
-		}
-
-		Plugin plugin;
+		readonly Plugin plugin;
 
 		public MainWindow(Plugin plugin)
 		{
 			this.plugin = plugin;
-			if (KSP.IO.File.Exists<MainWindow>("settings.cfg"))
-			{
-				try
-				{
-					var settings = ConfigNode.Load(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
-					autoUpdateStaging = settings.GetValue("autoUpdateStaging") == Boolean.TrueString;
-				}
-				catch (Exception) {}
-				try
-				{
-					var settings = ConfigNode.Load(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
-					plugin.showInFlight = settings.GetValue("showInFlight") == Boolean.TrueString;
-				}
-				catch (Exception) {}
-			}
 			planetId = Array.IndexOf(planetObjects, Planetarium.fetch.Home);
 			// Position will be computed dynamically to be on screen
 			windowPosition = new Rect(Screen.width, Screen.height, 0, 0);
-		}
-
-		public void Save()
-		{
-			ConfigNode settings = new ConfigNode("SmartStage");
-			settings.AddValue("autoUpdateStaging", autoUpdateStaging);
-			settings.AddValue("showInFlight", plugin.showInFlight);
-			settings.Save(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
-		}
-
-		public void Dispose()
-		{
-			autoUpdateStaging = false;
 		}
 
 		public void ComputeStages()
@@ -113,7 +70,7 @@ namespace SmartStage
 			GUILayout.BeginVertical();
 			if (GUILayout.Button("Compute stages"))
 				ComputeStages();
-			autoUpdateStaging = GUILayout.Toggle(autoUpdateStaging, "Automatically recompute staging");
+			plugin.autoUpdateStaging = GUILayout.Toggle(plugin.autoUpdateStaging, "Automatically recompute staging");
 
 			bool newAdvancedSimulation = GUILayout.Toggle(advancedSimulation, "Advanced simulation");
 			if (!newAdvancedSimulation && advancedSimulation)
@@ -146,11 +103,10 @@ namespace SmartStage
 
 		public void onEditorShipModified(ShipConstruct v)
 		{
-			if (! autoUpdateStaging)
-				return;
 			try
 			{
-				ComputeStages();
+				if (plugin.autoUpdateStaging)
+					ComputeStages();
 			}
 			catch (Exception) {}
 		}

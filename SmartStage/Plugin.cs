@@ -12,7 +12,6 @@ namespace SmartStage
 		ApplicationLauncherButton vabButton;
 		ApplicationLauncherButton flightButton;
 		readonly Texture2D[] textures;
-		GameScenes currentScene;
 
 		state _state = state.inactive;
 		public state State
@@ -38,6 +37,21 @@ namespace SmartStage
 				if (value == _showInFlight)
 					return;
 				_showInFlight = value;
+				Save();
+			}
+		}
+
+		bool _autoUpdateStaging = false;
+		public bool autoUpdateStaging
+		{
+			get { return _autoUpdateStaging;}
+			set
+			{
+				if (value == _autoUpdateStaging)
+					return;
+				_autoUpdateStaging = value;
+				State = value ? Plugin.state.active : Plugin.state.inactive;
+				Save();
 			}
 		}
 
@@ -53,12 +67,46 @@ namespace SmartStage
 
 		public void Start()
 		{
+			if (KSP.IO.File.Exists<MainWindow>("settings.cfg"))
+			{
+				try
+				{
+					var settings = ConfigNode.Load(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
+					autoUpdateStaging = settings.GetValue("autoUpdateStaging") == bool.TrueString;
+				}
+				catch (Exception) {}
+				try
+				{
+					var settings = ConfigNode.Load(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
+					showInFlight = settings.GetValue("showInFlight") == bool.TrueString;
+				}
+				catch (Exception) {}
+			}
 			GameEvents.onGUIApplicationLauncherReady.Add(AddButton);
 			GameEvents.onGUIApplicationLauncherDestroyed.Add(RemoveButton);
 			GameEvents.onEditorShipModified.Add(onEditorShipModified);
 			GameEvents.onLevelWasLoaded.Add(sceneChanged);
+			GameEvents.onGameSceneSwitchRequested.Add(sceneSwitchRequested);
 			AddButton();
 			DontDestroyOnLoad(this);
+		}
+
+		void sceneSwitchRequested(GameEvents.FromToAction<GameScenes, GameScenes> ignored)
+		{
+			RemoveButton();
+			gui = null;
+			State = state.inactive;
+		}
+
+		void sceneChanged(GameScenes scene)
+		{
+			AddButton();
+			if (scene == GameScenes.EDITOR)
+			{
+				gui = new MainWindow(this);
+				if (autoUpdateStaging)
+					State = state.active;
+			}
 		}
 
 		void AddButton()
@@ -67,7 +115,8 @@ namespace SmartStage
 				return;
 
 			vabButton = ApplicationLauncher.Instance.AddModApplication(
-				() => gui.ShowWindow = true, () => gui.ShowWindow = false,
+				() => ShowWindow(true),
+				() => ShowWindow(false),
 				null, null,
 				null, null,
 				ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
@@ -94,42 +143,28 @@ namespace SmartStage
 			vabButton = null;
 		}
 
-		private void sceneChanged(GameScenes scene)
+		void ShowWindow(bool shown)
 		{
-			if (currentScene == GameScenes.EDITOR)
-			{
-				gui.Save();
-				gui.Dispose();
-				gui = null;
-			}
-
-			currentScene = scene;
-
-			if (currentScene == GameScenes.EDITOR)
-				gui = new MainWindow(this);
-			else
-				State = state.inactive;
-		}
-
-		public void OnDestroy()
-		{
-			gui.Save();
-			gui.Dispose();
-			RemoveButton();
-			GameEvents.onGUIApplicationLauncherReady.Remove(AddButton);
-			GameEvents.onGUIApplicationLauncherDestroyed.Remove(RemoveButton);
-			GameEvents.onEditorShipModified.Remove(onEditorShipModified);
+			if (gui != null)
+				gui.ShowWindow = shown;
 		}
 
 		public void OnGUI()
 		{
-			if (currentScene == GameScenes.EDITOR)
-				gui?.OnGUI();
+			gui?.OnGUI();
 		}
 
 		void onEditorShipModified(ShipConstruct ship)
 		{
 			gui?.onEditorShipModified(ship);
+		}
+
+		void Save()
+		{
+			ConfigNode settings = new ConfigNode("SmartStage");
+			settings.AddValue("autoUpdateStaging", autoUpdateStaging);
+			settings.AddValue("showInFlight", showInFlight);
+			settings.Save(KSP.IO.IOUtils.GetFilePathFor(typeof(MainWindow), "settings.cfg"));
 		}
 	}
 }
