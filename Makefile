@@ -7,10 +7,8 @@ SOURCEFILES := $(wildcard SmartStage/*.cs)\
 	$(wildcard SmartStage/GUI/*.cs)\
 	$(wildcard SmartStage/Aero/*.cs)
 
-RESGEN2 := resgen2
-GMCS    := gmcs
+MCS     := mcs
 GIT     := git
-TAR     := tar
 ZIP     := zip
 
 VERSION_MAJOR := 2
@@ -27,17 +25,15 @@ all: build/SmartStage.dll
 
 info:
 	@echo "== SmartStage Build Information =="
-	@echo "  resgen2: ${RESGEN2}"
-	@echo "  gmcs:    ${GMCS}"
+	@echo "  gmcs:    ${MCS}"
 	@echo "  git:     ${GIT}"
-	@echo "  tar:     ${TAR}"
 	@echo "  zip:     ${ZIP}"
 	@echo "  KSP Data: ${KSPDIR}"
 	@echo "================================"
 
 build/%.dll: ${SOURCEFILES}
 	mkdir -p build
-	${GMCS} -t:library -lib:${MANAGED} \
+	${MCS} -t:library -lib:${MANAGED} \
 		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine,UnityEngine.UI \
 		${DEBUG} \
 		-out:$@ \
